@@ -1,0 +1,79 @@
+﻿    @page "/merchvisit"
+
+
+
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+
+@inject NavigationManager navigationmanager
+@inject IOinvService OinvService
+@inject NavigationManager Navigation
+
+<body class="body"> 
+<PageTitle>Merch Visit</PageTitle>
+    <h3 class="colorFontWhite">Merch Visit </h3>
+    <div style="padding:10px"></div>
+
+<EditForm Model="@empId" OnSubmit="@HandleSubmit">
+        <MudInput T="string" class="input" @bind-Value="empId" />
+        <MudButton class="input_color" Variant="Variant.Filled" Color="Color.Primary" type="submit">Submit</MudButton>
+</EditForm>
+
+
+    <MudForm class="colorFontWhite" method="post" asp-page-handler="VisitId">
+        <MudTable Items="@MerchVisits" Dense="false" Hover="true" Bordered="true" Striped="true" SortLabel="Sort By">
+            <HeaderContent>            
+                <MudTh>VisitID</MudTh>
+                <MudTh>CardCode</MudTh>
+                <MudTh>CardName</MudTh>
+                <MudTh>VisitDate</MudTh>
+                <MudTh>Merchandising</MudTh>
+                <MudTh>Comment</MudTh>
+                <MudTh>SaleProducts</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+            @if (MerchVisits != null)
+            {
+                @foreach (var merchVisit in MerchVisits)
+                {                  
+                        <input type="hidden" name="merchVisit.Index" value="@merchVisit.MerchVisitId" />
+                        <MudTd>@merchVisit.MerchVisitId</MudTd>
+                        <MudTd>@merchVisit.CardCode</MudTd>
+                        <MudTd>@merchVisit.Customer.CardName</MudTd>
+                        <MudTd>@merchVisit.VisitDateTime.ToShortDateString()</MudTd>
+                        <MudTd>@merchVisit.Merch</MudTd>
+                        <MudTd>@merchVisit.Comment</MudTd>
+                        <MudTd>
+                                <MudButton class="div_right_livt" @onclick="(()=>NavigatorPageMerchVisit(merchVisit.MerchVisitId))" value="@merchVisit.MerchVisitId" name="visitId">Отчет по товарам</MudButton>
+                        </MudTd>                   
+                }
+            }
+        </RowTemplate>
+    </MudTable>
+</MudForm>
+</body>
+
+@code {
+    private string empId = "1230";
+    private List<MerchVisit> MerchVisits;
+
+    protected override async Task OnInitializedAsync()
+    {
+        MerchVisits = (await OinvService.GetAllMerchVisits());
+    }
+
+    private async Task HandleSubmit()
+    {
+
+        MerchVisits = (await OinvService.GetAllMerchVisits(empId));
+
+        await Task.CompletedTask;
+    }
+    private void NavigatorPageMerchVisit(int id)
+    {
+        navigationmanager.NavigateTo($"pageMerchVist/{id}", false);
+    }
+}

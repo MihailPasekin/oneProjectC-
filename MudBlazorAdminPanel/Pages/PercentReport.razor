@@ -1,0 +1,178 @@
+﻿    @page "/percentreport"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using System.IO;
+@using System.Globalization;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccounting AccountingService
+<body class="body ,colorFont">
+
+       @* <div class='col-sm-2'>
+            <table class="col_table">
+                <tr>
+                    <td>
+            <MudDatePicker @bind-Date="FromDate" Label="С даты"></MudDatePicker>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class='col-sm-2'>
+            <table class="col_table">
+               <tr>
+                   <td>
+            <MudDatePicker @bind-Date="ToDate" Label="По дату"></MudDatePicker>
+                   </td>
+              </tr>
+            </table>
+        </div>*@
+
+    <MudStack Spacing="20" Row="false">
+        <MudText>Выбор Даты</MudText>
+        <MudDateRangePicker Label="" @bind-DateRange="dataRange" />
+    </MudStack>
+    
+    <div style="padding:10px"></div>
+    <div>
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetPercentReportAsync())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.AddCircle" type="submit">Показать отчет</MudButton>
+    </div>
+    <div style="padding:30px"></div>
+     @if (allPercents != null)
+    {
+        foreach (var table in allPercents)
+        {
+            @switch (table.First().JopTitle)
+            {
+                case "supervisor":
+                    <h3> Супервайзер </h3>
+                    break;
+                case "delivery":
+                    <h3> Экспедитор </h3>
+                    break;
+                case "agent":
+                    <h3> Торговый агент </h3>
+                    break;
+            }
+            <MudTable Items="@table" Dense="false" Hover="true" Bordered="true" Striped="true">
+                <HeaderContent>
+                    @if (table.First().JopTitle != "supervisor")
+                    {
+                        <MudTh>Код</MudTh>
+                    }
+                    else
+                    {
+
+                    }
+
+                    <MudTh>Имя</MudTh>
+                    <MudTh>Сумма</MudTh>
+                    <MudTh>Комиссия</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+                <RowTemplate>
+
+
+                    @if (table.First().JopTitle != "supervisor")
+                    {
+                        <MudTd>@context.Code</MudTd>
+                    }
+                    else
+                    {
+
+                    }
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@Math.Round(context.Sum, 2)</MudTd>
+                    <MudTd>@Math.Round(context.Commission, 2)</MudTd>
+                    @if (table.First().JopTitle != "supervisor")
+                    {
+                        <MudTd><MudButton class="div_right_livt" @onclick="(() => NavigatorPagePercentDetails(context.Code , FromDate.Value.Date, ToDate.Value.Date, context.JopTitle))" Variant="Variant.Filled" Color="Color.Primary" value="@context.Code" name="visitId">Подробности</MudButton></MudTd>
+                    }
+                    else
+                    {
+                        string bufval = context.Name.Replace(" ", "_").Replace("#", "-");
+
+                        <MudTd><MudButton class="div_right_livt" @onclick="(() => NavigatorPagePercentDetails(bufval,FromDate.Value.Date, ToDate.Value.Date, context.JopTitle))" Variant="Variant.Filled" Color="Color.Primary" value="@context.Name" name="visitId">Подробности</MudButton></MudTd>
+                    }
+            
+                </RowTemplate>
+                <PagerContent>                  
+            <MudTd>Итого:</MudTd>
+            <MudTd>Сумма: @Math.Round(table.Sum(p=>p.Sum),2)</MudTd>
+            <MudTd>Комиссия: @Math.Round(table.Sum(p=>p.Commission),2)</MudTd>          
+            </PagerContent>
+        </MudTable>
+        }
+    }
+    <div style="padding:10px">
+    </div>
+    <MudButton class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Download">Скачать Excel</MudButton>
+</body>
+
+@code {
+    private List<List<Percent>> allPercents = new List<List<Percent>>();
+    MudDateRangePicker _picker;
+    private DateRange dataRange = new DateRange(DateTime.Now.Date, DateTime.Now.Date);
+    private DateTime? fromDate = DateTime.Now.Date;
+    private DateTime? toDate = DateTime.Now.Date;
+    private DateTime? FromDate { get { return fromDate; } set { fromDate = value; } }
+    private DateTime? ToDate { get { return toDate; } set { toDate = value; } }
+    private double test; 
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? To { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        navigationParams.ClearNavigationStack();
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+        fromDate = DateTime.Now.Date;
+        toDate = DateTime.Now.Date;
+        allPercents = await AccountingService.GetPercentAsync(From.Replace("_", "."), To.Replace("_", "."));
+        await Task.CompletedTask;
+    }
+
+    protected override async void OnParametersSet()
+    {
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+
+        //DateTime.TryParseExact(From, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out fromDate);
+        //DateTime.TryParseExact(To, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out toDate);
+        
+        allPercents = await AccountingService.GetPercentAsync(From.Replace("_", "."), To.Replace("_", "."));
+
+        await Task.CompletedTask;
+    }
+
+    private void NavigatorPagePercentDetails(string id, DateTime fromDate, DateTime toDate, string JopTitle)
+    {
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+        navigationParams.SetPrevParams(new Dictionary<string, string>() { { "from", $"{fromDate.Date.ToString("yyyy_MM_dd")}" }, { "to", $"{toDate.Date.ToString("yyyy_MM_dd")}" } });
+        navigationmanager.NavigateTo($"percentreportdetails?id={id}&From={From}&To={To}&JopTitle={JopTitle}", false);
+    }
+    protected async Task GetPercentReportAsync()
+    {
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+        allPercents = await AccountingService.GetPercentAsync(From.Replace("_", "."), To.Replace("_", "."));
+        await Task.CompletedTask;
+    }
+    protected async void CreateDocument()
+    {
+
+        await excelService.GenerateWeatherPercentAsync(dataRange.Start.Value, dataRange.End.Value, JS, allPercents, "export.xlsx");
+    }
+}

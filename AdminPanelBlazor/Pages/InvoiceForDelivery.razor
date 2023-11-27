@@ -1,0 +1,88 @@
+﻿@page "/invoicefordelivery"
+
+@using AdminPanelBlazor.Interfaces;
+@using AdminPanelBlazor.Services;
+@using EComersObjectLib.Objects;
+@using System.Security.Claims
+
+@inject IJSRuntime js
+@inject IWarehouse WarehouseService
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+<h3>Фактуры</h3>
+<button class="div_right_livt" @onclick="ClickTemplateXLSAll">
+    Все факутура
+</button>
+<table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+    <thead class="model_table">
+        <tr>
+            <th>Номер Документа</th>
+            <th>Дата создания</th>
+            <th>Имя заказчика</th>
+            <th>Коментарий</th>
+            <th>Номер(Доставщика)</th>
+            <th>Номер(Супервайзера)</th>
+            <th>Сумма заказа</th>
+            <th></th>
+        </tr>
+        @if (deliveryForReport != null)
+        {
+            @foreach (var i in deliveryForReport)
+            {
+                <tr>
+                    <td>@i.DocNum</td>
+                    <td>@i.DocDate.ToShortDateString()</td>
+                    <td>@i.CardName</td>
+                    <td>@i.Comments</td>
+                    <td>@i.U_Agent</td>
+                    <td>@i.U_Supervisor</td>
+                    <td>@i.DocTotal</td>
+                    <td>
+                        <button class="div_right_livt" @onclick="(()=>ClickTemplateXLS(i))">
+                            Фактура
+                        </button>
+                    </td>
+                </tr>
+            }
+        }
+    </thead>
+</table>
+
+@code {
+    List<DeliveryForReport> deliveryForReport = new List<DeliveryForReport>();
+    private IEnumerable<Claim> claims = Enumerable.Empty<Claim>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            claims = user.Claims;
+            string region = claims.Where(p => p.Type == "Region").First().Value;
+            deliveryForReport = await WarehouseService.GetDeliveryForReportByRegion(region);
+            await Task.CompletedTask;
+        }
+        else
+        {
+            await Task.CompletedTask;
+        }
+
+    }
+    private async void ClickTemplateXLS(DeliveryForReport i)
+    {
+        var xls = new ExcelService();
+        await xls.TemplateWeatherForecastAsync(js, i, "facturadeliveri.xlsx");
+        await Task.CompletedTask;
+    }
+
+    private async void ClickTemplateXLSAll()
+    {
+        if (deliveryForReport.Count > 0)
+        {
+            var xls = new ExcelService();
+            await xls.TemplateWeatherForecastAllDeliveryAsync(js, deliveryForReport, "facturadeliveri.xlsx");
+        }
+        await Task.CompletedTask;
+    }
+}

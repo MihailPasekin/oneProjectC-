@@ -1,0 +1,14 @@
+SELECT 
+'agent' as "jopTitle",S8."OwnerCode" as "code", CONCAT(S5."firstName",  CONCAT(' ', S5."lastName")) as "Name",  SUM(orct."DocTotal") as "sum", SUM(orct."DocTotal" * S7."U_Percentage" * 0.01) AS "commission"
+FROM OINV S8
+left JOIN rct2 rct ON S8."DocEntry" = rct."DocEntry"
+left JOIN Orct orct ON rct."DocNum" = orct."DocEntry"
+left JOIN OHEM S5 ON S8."OwnerCode" = S5."Code"
+left JOIN HEM6 S6 ON S5."Code" = S6."empID"
+left JOIN "@BMM_OHTY_EXT" S7 ON S7."Code" = S6."roleID"
+WHERE 
+(S6."roleID" = 1 OR S6."roleID" = 8 OR S6."roleID" = 9)
+AND orct."DocDate" BETWEEN FROMDATE AND TODATE
+AND S8."CANCELED" = 'N'
+and orct."Canceled" = 'N'
+GROUP BY S8."OwnerCode", S5."firstName", S5."lastName";

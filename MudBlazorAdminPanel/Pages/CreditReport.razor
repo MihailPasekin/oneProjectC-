@@ -1,0 +1,142 @@
+﻿@page "/creditReport"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using System.IO;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject IAccounting AccountingService
+<body class="body ,colorFont">
+    
+    
+
+    <div class="row">
+        @*<div class='col-sm-2'>
+            <h3 class="colorFont">Выбор даты</h3>
+        </div>*@
+
+        <div class='col-sm-2'>
+            <table class="col_table">
+                <tr>
+                    <td>
+            <MudDatePicker @bind-Date="toDate" Label="Выбор Даты"></MudDatePicker>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div style="padding:10px"></div>
+    <div class="row">
+       
+        <div class='col-sm-2'>
+            <table class="col_table">
+                <tr>
+                    <td>
+            <MudSelect T="string" @bind-Value="@selectedRoute" Label="Территория" Variant="Variant.Outlined" Placeholder="Please Select">
+                <option value=""></option>
+                @foreach (var uRoute in uRouteID)
+                {
+                    <MudSelectItem Value="@uRoute.RouteId">@uRoute.RouteId</MudSelectItem>
+                }
+            </MudSelect>
+                    </td>
+                </tr>
+            </table>
+            
+        </div>
+    </div>
+    <div>
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetCreditReport())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.AddCircle" type="submit">Показать отчет</MudButton>
+    </div>
+    <div style="padding:30px"></div>
+    <MudTable Items="@creditReport" Dense="false" Hover="true" Bordered="true" Striped="true">
+           <HeaderContent>
+                <MudTh>Рут</MudTh>
+                <MudTh>Агент</MudTh>
+                <MudTh>Номер документа</MudTh>
+                <MudTh>Дата Доставки</MudTh>
+                <MudTh>Клиент</MudTh>
+                <MudTh>Сумма заказа</MudTh>
+                <MudTh>Консигнация</MudTh>
+                <MudTh>Перечисление</MudTh>
+                <MudTh>Кредит 7 дней</MudTh>
+                <MudTh>Кредит 14 дней</MudTh>   
+                <MudTh>Кредит 30 дней</MudTh>
+                <MudTh>Осталось дней</MudTh>
+                <MudTh>Просрочено дней</MudTh>
+                <MudTh>Сумма кредита</MudTh>
+                <MudTh>Остаток</MudTh>
+                <MudTh>Сумма оплаты</MudTh>
+                <MudTh>Сумма возрата</MudTh>
+            </HeaderContent>
+
+        <RowTemplate>
+            <MudTd>@context.Route</MudTd>
+                <MudTd>@context.Agent</MudTd>
+                <MudTd>@context.DocNum</MudTd>
+                <MudTd>@context.DeliveriDate.ToString("dd.MM.yyyy")</MudTd>
+                <MudTd>@context.Client</MudTd>
+                <MudTd>@context.OrderSum</MudTd>
+                <MudTd>@context.ConsignmentTotal</MudTd>
+                <MudTd>@context.Transfer</MudTd>
+                <MudTd>@context.Credit7</MudTd>
+                <MudTd>@context.Credit14</MudTd>
+                <MudTd>@context.Credit30</MudTd>
+                <MudTd>@context.Ostalos</MudTd>
+                <MudTd>@context.Expired</MudTd>
+                <MudTd>@context.CreditSum</MudTd>
+                <MudTd>@context.Balance</MudTd>
+                <MudTd>@context.SumOplaty</MudTd>
+                <MudTd>@context.SumVozvrat</MudTd>                
+            </RowTemplate>
+                    
+    </MudTable>
+    <div style="padding:10px">
+    </div>
+    <MudButton class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Download">Скачать Excel</MudButton>
+
+</body>
+
+@code {
+    private string selectedRoute =   "ROOT # 03 AG";
+    private List<CreditReportLines> creditReport = new List<CreditReportLines>();
+    private List<URouteID> uRouteID { get; set; } = new List<URouteID>();
+    private DateTime fromDate { get; set; } = DateTime.Now.Date;
+    private DateTime? toDate { get; set; } = DateTime.Now.Date;
+    private double sumConsignmentTotal { get { return Math.Round(creditReport.Sum(p => p.ConsignmentTotal), 2); } }
+    private double SumTransfer { get { return Math.Round(creditReport.Sum(p => p.Transfer), 2); } }
+    private double sumCredit7 { get { return Math.Round(creditReport.Sum(p => p.Credit7), 2); } }
+    private double sumCredit14 { get { return Math.Round(creditReport.Sum(p => p.Credit14),2); } }
+    private double sumCredit30 { get { return  Math.Round(creditReport.Sum(p => p.Credit30),2); } }
+    private double sumCreditSum { get { return Math.Round(creditReport.Sum(p => p.CreditSum),2); } }
+    private double sumBalance { get { return  Math.Round(creditReport.Sum(p => p.Balance),2); } }
+    private double sumSumOplaty { get { return Math.Round(creditReport.Sum(p => p.SumOplaty), 2); } }
+    private double sumSumVozvrat { get { return Math.Round(creditReport.Sum(p => p.SumVozvrat), 2); } }
+    private double sumOrderSum { get { return Math.Round(creditReport.Sum(p => p.OrderSum), 2); } }
+
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+        uRouteID = await AccountingService.GetURouteIDAsync();
+
+        creditReport = await AccountingService.GetCerditReportListAsync(fromDate.Date.ToString("yyyy.MM.dd"), toDate.Value.ToString("yyyy.MM.dd"), selectedRoute.Replace(" ", "%20").Replace("#", "%23"));
+        await Task.CompletedTask;
+    }
+
+    private async Task GetCreditReport()
+    {
+        creditReport = await AccountingService.GetCerditReportListAsync(fromDate.Date.ToString("yyyy.MM.dd"), toDate.Value.ToString("yyyy.MM.dd"), selectedRoute.Replace(" ", "%20").Replace("#", "%23"));
+        await Task.CompletedTask;
+    }
+    protected async void CreateDocument()
+    {
+
+        await excelService.GenerateWeatherCreditReportAsync(fromDate, toDate.Value,JS, creditReport, "export.xlsx");
+    }
+}

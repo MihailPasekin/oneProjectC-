@@ -1,0 +1,27 @@
+select 
+	odln."CardCode",
+	dln."Dscription",
+	oitm."CodeBars",
+	sum(dln."Quantity")as "Quantity",
+	dln."ShipDate",
+	dln."Price",
+	odln."U_Agent",
+	odln."DocDate",
+	odln."DocDueDate"
+from test.odln odln,
+	test.dln1 dln
+	inner join test.OITM oitm on dln."ItemCode" = oitm."ItemCode"
+where odln."CANCELED" = 'N'
+	and odln."DocStatus" = 'O'
+	and dln."DocEntry" = odln."DocEntry"
+	and odln."DocDate" > FROM
+	and odln."U_Agent" = AGENT
+group by odln."CardCode",
+	dln."Dscription",
+	oitm."CodeBars",
+	dln."ShipDate",
+	dln."Price",
+	odln."U_Agent",
+	odln."DocDate",
+	odln."DocDueDate"
+;

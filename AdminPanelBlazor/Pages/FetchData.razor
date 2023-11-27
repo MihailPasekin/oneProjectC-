@@ -1,0 +1,203 @@
+﻿@page "/kassa"
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.SapObjects
+@using System.Security.Claims
+
+
+@attribute [Authorize(Roles = "Admin, Accountant")]
+@inject  IOinvService iOinvService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+<body class="body">
+<PageTitle>Invoices page</PageTitle>
+
+    <div class="row" style="padding-top:15px;">
+        <div class="col-sm-2">
+            <h3 for="exampleInputComment">Выбор сотрудника</h3>
+        </div>
+
+        <div class="col-sm-2">
+            <select class="form-control" id="emploe" @onchange="EmployeSelected">
+                <option value="0" selected>Выбрать...</option>
+                @foreach (var emploe in EmploeAll)
+                {
+                    <option value="@emploe.empId">@emploe.empId @emploe.firstName @emploe.lastName</option>
+                }
+            </select>
+        </div>
+
+        <div style="padding-top:10px;"></div>
+
+    </div>
+
+    <button class="input_color" @onclick="HandleSubmit">Submit</button>
+
+    <h2 class="colorFontWhite">@employeRoots</h2>
+    <h2 class="colorFontWhite">@employeName</h2>
+@if (Oinvs == null)
+{
+        <h4 class="colorFont">Loading...</h4>
+}
+else
+{       <form class="colorFontWhite" >
+            <table border=2 cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+                <thead style="height: 10%; overflow: auto;" class="model_table ">
+            <tr>
+                <th>DocEntry</th>
+                <th>CardCode</th>
+                <th>CardName</th>
+                <th>PayType</th>
+                <th>DocDate</th>
+                <th>DocTotal</th>
+                <th>AddSum</th>
+                <th>PaySum</th>
+                <th>Confirm</th>
+            </tr>
+            @if (Oinvs != null)
+            {
+                @foreach (var invoice in Oinvs.ListOinvs)
+                {
+                    <tr>
+                        <td>@invoice.DocEntry</td>
+                        <td>@invoice.CardCode</td>
+                        <td>@invoice.CardName</td>
+                        <td>
+                            @switch (invoice.GroupNum)
+                            {
+                                case -1:
+                                    <text>"Наличные"</text>
+                                    ;
+                                    break;
+                                case 1:
+                                    <text>"При отгрузке"</text>
+                                    ;
+                                    break;
+                                case 2:
+                                    <text>"Кредит 7"</text>
+                                    ;
+                                    break;
+                                case 3:
+                                    <text>"Кредит 14"</text>
+                                    ;
+                                    break;
+                                case 4:
+                                    <text>"Кредит 30"</text>
+                                    ;
+                                    break;
+                                case 5:
+                                    <text>"Перечисление"</text>
+                                    ;
+                                    break;
+                                case 6:
+                                    <text>"Консигнация"</text>
+                                    ;
+                                    break;
+                                case 7:
+                                    <text>"Реализация"</text>
+                                    ;
+                                    break;
+                            }
+                        </td>
+                        <td>@invoice.DocDate.ToShortDateString()</td>
+                        <td>@invoice.DocTotal </td>
+                        <td>
+                                    <button class="div_right_livt" @onclick="(()=>SetPaySum(invoice))" type="button">@invoice.BtText</button>
+                        </td>
+                        <td>
+                            <InputNumber @bind-Value="@invoice.PaySum" class="input"></InputNumber>
+                        </td>
+                        <td>
+                             <InputCheckbox @bind-Value="@invoice.Confirm" class="cheked_color "></InputCheckbox>
+                        </td>
+                    </tr>
+                }
+            }
+        </thead>
+    </table>
+    </form>
+    <div style="float:right">
+            <div style="padding-top:10px "></div>
+            <h4 class="colorFont" style="font-size:24px; ">Итого: @Oinvs.TotalSumm</h4>
+            <div style="padding-top:20px "></div>
+            <EditForm Model="@Oinvs" OnSubmit="@PaymantSubmit">
+                <button class=" input_color2 " style="font-size:24px" type="submit">Отправить</button>
+            </EditForm>
+    </div>
+       
+
+}
+</body>
+@code {
+    private string empId = "0";
+    private ListOINV Oinvs;
+    private float totalsum = 0;
+    private string employeRoots = "";
+    private string employeName = "";
+    private string btText = ">>";
+    private IEnumerable<Claim> claims = Enumerable.Empty<Claim>();
+    private List<OHEM> EmploeAll = new List<OHEM>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            claims = user.Claims;
+            EmploeAll = (await iOinvService.GetAllEmployesEkspeditorAsync(claims.Where(p => p.Type == "Region").First().Value));
+        }
+        else
+        {
+            await Task.CompletedTask;
+            return;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (int.TryParse(empId,out int id) && id>0)
+        {
+            Oinvs = (await iOinvService.GetInvoices(empId));
+            employeName = (await iOinvService.GetEmployeName(empId));
+            employeRoots = (await iOinvService.GetEmployeRoot(empId));
+        }
+        
+        await Task.CompletedTask;
+    }
+    private async Task PaymantSubmit()
+    {
+        var list = Oinvs.ListOinvs.Where(p => p.Confirm == true).ToList<OINV>();
+        
+        foreach(var inv in list)
+        {
+            inv.CashAccount = claims.Where(p => p.Type == "CashAccount").First().Value;
+        }
+
+        await iOinvService.PostCreatePay(list);
+        Oinvs = await iOinvService.GetInvoices(empId);
+        await Task.CompletedTask;
+    }
+
+    private async Task SetPaySum(OINV oinv)
+    {
+        if (oinv.PaySum == 0)
+        {
+            oinv.PaySum = oinv.DocTotal;
+        }
+        else
+        {
+            oinv.PaySum = 0;
+            oinv.Confirm = false;
+        }
+
+        await Task.CompletedTask;
+    }
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        empId = eventArgs.Value.ToString();
+    }
+}

@@ -1,0 +1,199 @@
+﻿@page "/dailyCheckoutReportKassa"
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using System.IO;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IAccounting AccountingService
+
+<body class="body ,colorFont">
+    <h1 class="colorFont">Ежедневный отчет</h1>
+
+        <div class="row" style="padding-top:30px">
+            <div class='col-sm-2'>
+                <h3 class="colorFont">С даты</h3>
+            </div>
+
+            <div class='col-sm-2'>
+                <InputDate @bind-Value="fromDate"></InputDate>
+            </div>
+        </div>
+
+    
+ 
+   <div class="row">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">По дату</h3>
+        </div>
+           
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="toDate"></InputDate>
+        </div>
+   </div>
+
+    
+        <div class="row">
+            <div class='col-sm-2'>
+                <h3 class="colorFont">Счет кассы</h3>
+            </div>
+
+            <div class='col-sm-2'>
+                <select class="form-control" @bind="@selectedCashAccount">
+
+                    <option value=""></option>
+                    @foreach (var account in cashAccounts)
+                    {
+                        <option value="@account.CashAcc"> @account.CashAcc </option>
+                    }
+                    }
+
+                </select>
+            </div>
+        </div>
+    
+    <div >
+        <button class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetKassaDaylyReport())" type="submit">Показать отчет</button>
+    </div>
+    
+    <div style ="padding:30px"></div>
+    <table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+        <thead class="model_table">
+            <tr>
+                <th>Подотчетное лицо</th>
+                <th>Приход наличными</th>
+                <th>Кредит</th>
+                <th>Перевод</th>
+                <th>Расход</th>
+                <th>Всего</th>
+            </tr>
+            @if (daylyKassaReport.KassaLines != null)
+            {
+                @foreach (var kassaReportLines in daylyKassaReport.KassaLines)
+                {
+                    <tr>
+                        <td>@kassaReportLines.AccountablePerson</td>
+                        <td>@kassaReportLines.Coming</td>
+                        <td>@kassaReportLines.Credits</td>
+                        <td>@kassaReportLines.Transfer</td>
+                        <td>@kassaReportLines.Expense</td>
+                        <td>@(kassaReportLines.Coming + kassaReportLines.Credits + kassaReportLines.Transfer + kassaReportLines.Expense)</td>
+                    </tr>
+                }
+            }
+        </thead>
+    </table>
+    <div style="padding:10px">
+    </div>
+    
+        <div class="row">
+            <div class='col-sm-3'>
+                <h3 class="colorFont">Касса на начало дня</h3>
+            </div>
+
+            <div class='col-sm-2'>
+                <span class="colorFontWhite">@daylyKassaReport.KassaStartDay </span>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-sm-3'>
+                <h3 class="colorFont">Сумма прихода</h3>
+            </div>
+
+            <div class='col-sm-2'>
+                <span class="colorFontWhite">@daylyKassaReport.KassaComming </span>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-sm-3'>
+                <h3 class="colorFont">Расход</h3>
+            </div>
+
+            <div class='col-sm-2'>
+                <span class="colorFontWhite">@daylyKassaReport.KassaExpense </span>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-sm-3'>
+                <h3 class="colorFont">Переводы</h3>
+            </div>
+
+            <div class='col-sm-2'>
+                <span class="colorFontWhite">@daylyKassaReport.KassaTransactions</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-sm-3'>
+                <h3 class="colorFont">Касса на конец дня</h3>
+            </div>
+
+            <div class='col-sm-2'>
+                <span class="colorFontWhite">@daylyKassaReport.KassaEndDay </span>
+            </div>
+        </div>
+
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>
+        
+    <h3 class="colorFont" style="padding-top:30px">Платежи не привязанные к инвойсам</h3>
+
+    <table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+        <thead class="model_table">
+            <tr>
+                <th>Номер документа</th>
+                <th>Дата документа</th>
+                <th>Заказчик</th>
+                <th>Касса</th>
+                <th>Сумма</th>
+            </tr>
+            @if (orctErrors != null)
+            {
+                @foreach (var orct in orctErrors)
+                {
+                    <tr>
+                        <td>@orct.DocNum</td>
+                        <td>@orct.DocDate</td>
+                        <td>@orct.CardName</td>
+                        <td>@orct.CashAcct</td>
+                        <td>@orct.Cashsum</td>
+                    </tr>
+                }
+            }
+        </thead>
+    </table>
+
+</body>
+
+@code 
+{
+    private string selectedCashAccount = "";
+    private DaylyReportKassa daylyKassaReport = new DaylyReportKassa();
+    private DateTime fromDate { get; set; } = DateTime.Now.Date;
+    private DateTime toDate { get; set; } = DateTime.Now.Date;
+    private List<CashAccount> cashAccounts { get; set; } = new List<CashAccount>();
+    private List<ErrorOrct> orctErrors { get; set; } = new List<ErrorOrct>();
+    private bool show = false;
+    protected override async Task OnInitializedAsync()
+    {
+        cashAccounts = await AccountingService.GetListCashAccount();
+        orctErrors = await AccountingService.GetListErrorOrctsAsync();
+    }
+    private async Task GetKassaDaylyReport()
+    {
+        if (selectedCashAccount != string.Empty)
+        {
+            daylyKassaReport = await AccountingService.GetDaylyKassaReport(fromDate.Date.ToString("yyyy.MM.dd"), toDate.Date.ToString("yyyy.MM.dd"), selectedCashAccount);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    protected async void CreateDocument()
+    {
+
+        await excelService.GenerateWeatherDeyliKassaAsync(fromDate, toDate, JS, daylyKassaReport, "export.xlsx");
+    }
+}

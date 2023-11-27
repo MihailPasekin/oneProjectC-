@@ -1,0 +1,121 @@
+﻿@page "/itemloading"
+
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using EComersObjectLib.SapObjects;
+@using MudBlazorAdminPanel.Services;
+@using Microsoft.JSInterop;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IWarehouse WarehouseService
+@inject IOinvService iOinvService
+
+<body class="body">
+    <PageTitle>WareHouse</PageTitle>
+    <h3 class="colorFontWhite">Подбор товаров к отгрузке на дату: @FromDate.Value</h3>
+
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">С даты</h3>
+        </div>
+
+        <div class='col-sm-2'>
+            <table class="col_table">
+                <tr>
+                    <td>
+            <MudDatePicker @bind-Date="FromDate"></MudDatePicker>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="row" style="padding-top:15px;">
+        <div class="col-sm-2">
+            <h3 for="exampleInputComment">Выбор сотрудника</h3>
+        </div>
+
+        <div class="col-sm-2">
+            <table class="col_table">
+                <tr>
+                    <td>
+            <MudSelect T=string class="form-control" id="emploe" @onchange="EmployeSelected" Label="Выбрать...">
+                <option value></option>
+                @foreach (var emploe in EmploeAll)
+                {
+                    <MudSelectItem Value="@emploe.empId">@emploe.firstName @emploe.lastName</MudSelectItem>
+                }
+            </MudSelect>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="padding-top:10px;"></div>
+
+    </div>
+    <div style="padding-bottom:20px">
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetReportAsync())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.AddCircle" type="submit">Показать отчет</MudButton>
+    </div>
+    <div style="padding-top:30px;"></div>
+        <MudTable Items="@empId" Dense="false" Hover="true" Bordered="true" Striped="true">
+                <MudTr>
+                    <MudTh>Код товара</MudTh>
+                    <MudTh>Описаниие</MudTh>
+                    <MudTh>Количество</MudTh>
+                    <MudTh>Дата доставки</MudTh>
+                    <MudTh>Цена</MudTh>
+                    <MudTh>Дата регистрации</MudTh>
+
+                </MudTr>
+                @if (loadingReports != null)
+                {
+                    @foreach (var loading in loadingReports)
+                    {
+                        <MudTr>
+                            <MudTd>@loading.ItemCode</MudTd>
+                            <MudTd>@loading.Description</MudTd>
+                            <MudTd>@loading.Quantity</MudTd>
+                            <MudTd>@loading.ShipDate.ToShortDateString()</MudTd>
+                            <MudTd>@loading.Price</MudTd>
+                            <MudTd>@loading.DocDate.ToShortDateString()</MudTd>
+                        </MudTr>
+                    }
+                }          
+        </MudTable>
+    <div style="padding:10px"></div>
+   @*<MudButton class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</MudButton>*@
+</body>
+
+@code {
+    private string empId = "830";
+    private DateTime? FromDate { get; set; } = DateTime.Now.AddDays(-1);
+    private List<OHEM> EmploeAll = new List<OHEM>();
+    private List<LoadingReport> loadingReports;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loadingReports = (await WarehouseService.GetLoadingReport(FromDate.Value.ToString("yyyy.MM.dd"), empId));
+       // EmploeAll = (await iOinvService.GetAllEmployesEkspeditorAsync());
+    }
+
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        empId = eventArgs.Value.ToString();
+    }
+
+    protected async Task GetReportAsync()
+    {
+        loadingReports = (await WarehouseService.GetLoadingReport(FromDate.Value.ToString("yyyy.MM.dd"), empId));
+        await Task.CompletedTask;
+    }
+
+    protected async void CreateDocument()
+    {
+        string employeName = EmploeAll.Where(p => p.empId == int.Parse(empId)).Select(p => string.Concat(p.firstName, " ", p.lastName)).FirstOrDefault() ?? " ";
+       // await excelService.GenerateWarehouseLoadingReportAsync(FromDate, employeName, JS, loadingReports, "export.xlsx");
+    }
+}

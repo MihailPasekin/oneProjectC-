@@ -1,0 +1,184 @@
+﻿@page "/merchPlan"
+
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@inject IOinvService OinvService
+
+<body class="body">
+    
+        <div class="row ">
+            <div class="col">
+                <label for="exampleInputComment"  >Найти сотрудника</label>
+                <input @onchange="FilterTextChangedEmpoe" class="form-control" type="text" placeholder="поиск">
+                <div style="padding-top:15px;">
+                    <label for="exampleInputComment"  >Выбрать сотрудника</label>
+                    <EditForm Model="@merchPlanDitail" OnSubmit="@PlanDetailSubmit">
+                        <select class="form-control" id="emploe" @onchange="EmployeSelected">
+                            <option selected>Выбрать...</option>
+                            @foreach (var emploe in EmploeFiltered)
+                            {
+                                <option value="@emploe.SapEmployeId">@emploe.EmployeSecondName @emploe.EmployeName</option>
+                            }
+                        </select>
+                        <div style="padding-top:10px;"></div>
+                    </EditForm>
+                </div>
+                <div style="padding-top:10px;">
+                    <label for="exampleInputComment"  >Поиск заказщика</label>
+                    <input @onchange="FilterTextChangedCustomer" class="form-control" type="text" placeholder="поиск">
+                </div>
+                <div style="padding-top:15px;">
+                    <label for="exampleInputComment">Выбрать заказщика</label>
+                    <select class="form-control" id="customer" @bind="merchPlanDitail.CardCode">
+                        <option selected>Выбрать...</option>
+                        @foreach (var customer in CustomersFiltered)
+                        {
+                            <option value="@customer.CardCode">@customer.CardName</option>
+                        }
+                    </select>
+                    <div style="padding-top:20px;"></div>
+                    <button class="input_color" @onclick="(()=>PlanDetailSubmit())" type="submit">Добавить заказщика</button>
+                </div>
+                <div style="padding-top:30px;"></div>
+            </div>
+            <div class="col-md-4 col-xs-12 col-lg-6">
+                <div class="form-group">
+                    <label for="exampleInputComment"  >Комментарий</label>
+                    <input type="text" class="form-control" id="commentText" aria-describedby="emailHelp" placeholder="Комментарий" @bind="merchPlan.Coment">
+                </div>
+                <div style="padding-top:5px;">
+                    <label for="date" class="col-form-label"  >С какого числа?</label>
+                    <br />
+                    <InputDate class="input" style="margin-left:-4px;" @bind-Value="merchPlan.PlanDate" />
+                </div>
+                </div>
+            </div>
+        
+    <div></div>
+    
+        <div class="row">
+            <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding-bottom:20px; margin-top:1px;">
+                <table border=2 cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table, colorFontWhite">
+                    <thead class="model_table ">
+                        <tr>
+                            <th>Employe Name</th>
+                            <th style="width:-10%;">PlanDate</th>
+                            <th style="width:10%; padding-left:250px">Coment</th>
+                        </tr>
+                        <tr>
+                            <td>@employeName </td>
+                            <td>@merchPlan.PlanDate</td>
+                            <td style="word-break: break-all;">@merchPlan.Coment</td>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding-bottom:20px; ">
+                <table border=2 cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table2 , colorFontWhite">
+                    <thead class="model_table ">
+                        <tr>
+                            <th>CardName</th>
+                            <th>CastomerId</th>
+                            <th>CardCode</th>
+                        </tr>
+                        @if (Oinvs != null)
+                        {
+                            @foreach (var merchdetils in merchPlan.PlanDetails ?? new List<PlanDetail>())
+                            {
+                                <tr>
+                                    <td>@merchdetils.CardName</td>
+                                    <td>@merchdetils.CastomerId</td>
+                                    <td>@merchdetils.CardCode</td>
+                                </tr>
+                            }
+                        }
+                    </thead>
+                </table>
+            </div>
+        </div>
+   
+    <button class=" btn-lg btn-primary, input_color2" @onclick="(()=>HandleSubmitPlan())" type="submit">Отправить данные</button>
+</body>
+
+@code {
+    private PlanDetail merchPlanDitail = new PlanDetail();
+    private MerchPlan merchPlan = new MerchPlan();
+    private List<MerchPlan> Oinvs;
+    private List<Customer> CustomersAll = new List<Customer>();
+    private List<Customer> CustomersFiltered = new List<Customer>();
+    private List<EmployeView> EmploeAll = new List<EmployeView>();
+    private List<EmployeView> EmploeFiltered = new List<EmployeView>();
+    private string employeName = "";
+    private int customerId;
+    private int epmploeId;
+    private string customerFilterVal = "";
+    private string emploeFilterVal = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        merchPlan.PlanDate = DateTime.Now;
+        merchPlan.PlanDetails = new List<PlanDetail>();
+        Oinvs = await OinvService.MerchPlansAll();
+        CustomersAll = await OinvService.GetAllCustomers("1230");
+        CustomersFiltered = CustomersAll.Where(p => p.CardName.ToLower().Contains(customerFilterVal.ToLower())).ToList();
+        EmploeAll = await OinvService.GetAllEmployesAsync();
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+    }
+
+    private async Task HandleSubmitPlan()
+    {
+
+        merchPlan.PlanStatus = "Created";
+        await OinvService.PostAllMerchPlan(merchPlan);
+        merchPlan = new MerchPlan()
+        {
+            PlanDate = DateTime.Now,
+            PlanDetails = new List<PlanDetail>()
+
+        };
+        Oinvs = await OinvService.MerchPlansAll();
+        await Task.CompletedTask;
+    }
+
+    private async Task PlanDetailSubmit()
+    {
+        var customer = CustomersAll.Where(p => p.CardCode == merchPlanDitail.CardCode).FirstOrDefault();
+        string cardName = customer != null ? customer.CardName : string.Empty;
+        merchPlanDitail.CardName = cardName;
+        merchPlanDitail.PlanDeteilStatus = "ACTIVE";
+        merchPlan.PlanDetails.Add(merchPlanDitail);
+        merchPlanDitail = new PlanDetail();
+        await Task.CompletedTask;
+    }
+    private Task SetAsyncEmploe(string value)
+    {
+        emploeFilterVal = value;
+
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(value.ToLower())).ToList();
+        return Task.CompletedTask;
+    }
+    public void FilterTextChangedCustomer(ChangeEventArgs eventArgs)
+    {
+        customerFilterVal = eventArgs.Value.ToString();
+
+        CustomersFiltered = CustomersAll.Where(p => p.CardName.ToLower().Contains(customerFilterVal.ToLower())).ToList();
+    }
+    public void FilterTextChangedEmpoe(ChangeEventArgs eventArgs)
+    {
+        emploeFilterVal = eventArgs.Value.ToString();
+
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+    }
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        merchPlan.EmpId = int.Parse(eventArgs.Value.ToString());
+        employeName = EmploeAll.Where(p => p.SapEmployeId == merchPlan.EmpId).Select(p => new { name = $"{p.EmployeName} {p.EmployeSecondName}" }).First().name;
+    }
+}

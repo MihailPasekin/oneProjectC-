@@ -1,0 +1,11 @@
+select distinct(hem."empID") as manager
+from  
+	test.hem6 hem
+	left join test.HTM1 htm on hem."empID" = htm."empID" 
+	left join test.OHTM ohtm on htm."teamID" = ohtm."teamID" 
+where  1=1
+	and hem."roleID" in (2) 
+	and hem."U_EndDate" is null
+	and ohtm."name" = 'rootName' 
+group by hem."empID"
+limit 1;

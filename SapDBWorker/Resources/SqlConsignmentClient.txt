@@ -1,0 +1,3 @@
+select test.ocrd."CardCode" , test.ocrd."CardName" from test.ocrd 
+where
+test.ocrd."CardType" = 'S'

@@ -1,0 +1,113 @@
+﻿@page "/login"
+
+@using MudBlazorAdminPanel.Interfaces;
+@using EComersObjectLib.Objects;
+
+@inject IAuthenticationCustom authenticationCustom
+@inject IAuthorizationService AuthorizationService
+@inject NavigationManager navigationmanager
+@inject IAccounting AccountingService
+@inject UserStateProvider authStateProvider
+
+
+<body class="body ,colorFont">
+    <AuthorizeView>
+        <Authorized>
+            
+            <a href="/">Hello, @context.User.Identity?.Name!</a>
+
+            <MudButton @onclick="TryLogOut">Выйти</MudButton>
+        </Authorized>
+        <NotAuthorized>
+            <div class="row" style="padding-top:30px">
+                @*<div class='col-sm-2'>
+                    <h3 class="colorFont">Логин</h3>
+                </div>*@
+
+                <div class='col-sm-2'>
+                <table class="col_table">
+                   <tr>
+                       <td>
+                                <MudTextField @bind-Value="login" Label="Логин" Variant="Variant.Outlined"></MudTextField>
+                       </td>
+                   </tr>
+                </table>
+                </div>
+            </div>
+
+            <div class="row">
+               
+
+                <div class='col-sm-2'>
+                    <table class="col_table">
+                   <tr>
+                       <td>
+                                <MudTextField @bind-Value="password" Label="Пароль" Variant="Variant.Outlined" InputType="@PasswordInput" Adornment="Adornment.End"></MudTextField>
+                       </td>
+                  </tr>
+                    </table>
+                </div>
+            </div>
+            <div>
+                <div style="padding:10px"></div>
+                     <MudButton @onclick="TryAutenticate" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Login">Авторизоваться</MudButton>
+            </div>
+            <div style="padding:30px"></div>
+
+        </NotAuthorized>
+    </AuthorizeView>
+
+</body>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    private List<OkReportLines> okReport = new List<OkReportLines>();
+    private string login { get; set; } 
+    private string password { get; set; } 
+
+    bool isShow;
+    InputType PasswordInput = InputType.Password;
+    string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await Task.CompletedTask;
+
+    }
+    private async void TryAutenticate()
+    {
+        try
+        {
+            await authStateProvider.Login(login, password);
+            NavigationManager.NavigateTo($"orderPage",false);
+        }
+        catch (Exception ex)
+        {
+            
+        }
+        await Task.CompletedTask;
+    }
+
+    private async void TryLogOut()
+    {
+        try
+        {
+            await authStateProvider.Logout();
+            NavigationManager.NavigateTo($"login",false);
+
+        }
+        catch (Exception ex)
+        {
+
+        }
+        await Task.CompletedTask;
+    }
+}

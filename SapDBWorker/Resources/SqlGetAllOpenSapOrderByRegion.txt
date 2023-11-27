@@ -1,0 +1,22 @@
+select ordr."DocEntry",  
+	ordr."DocNum",  
+	ordr."DocStatus",  
+	ordr."DocDate", 
+	ordr."DocTime",  
+	ordr."CardCode",  
+	ordr."CardName",  
+	ordr."DocTotal",  
+	ordr."GrosProfit",  
+	ordr."OwnerCode" , 
+	ordr."GroupNum",
+	(CASE WHEN ordr."GroupNum"='-1' THEN 'Cash'  
+		WHEN ordr."GroupNum"='1' OR ordr."GroupNum"='2' OR ordr."GroupNum"='3' OR ordr."GroupNum"='4'THEN 'Credit'  
+		WHEN ordr."GroupNum"='5' THEN 'Bank'  
+		WHEN ordr."GroupNum"='6' THEN 'Consignment'  END) AS "PayType", 
+	"Comments"
+from 
+	TEST.ORDR ordr,
+	TEST.OCRD ocrd
+where "DocStatus" = 'O'
+	and ordr."CardCode" = ocrd."CardCode"
+	and ocrd."U_RouteID" like '%REGION'

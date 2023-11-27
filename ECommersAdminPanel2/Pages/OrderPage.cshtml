@@ -1,0 +1,88 @@
+﻿@page
+@model ECommersAdminPanel2.Pages.OrderPageModel
+@{
+    ViewData["Title"] = "Order page";
+}
+<form method="post" asp-page-handler="CreateDelivery">
+<table border=2 bordercolor="#000000" cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+        <thead>
+        <tr>
+            <th>DocEntry</th>
+            <th>CardCode</th>
+            <th>CardName</th>
+            <th>PayType</th>
+            <th>DocDate</th>
+            <th>DocTotal</th>
+            <th>Comments</th>
+            <th>Confirm</th>
+            <th>OrderItems</th>
+        </tr>
+        @if(Model.Orders != null)
+        {
+            if(Model.Orders.Count > 0)
+            {
+                @foreach (var order in Model.Orders)
+                {
+                    <tr>
+                        <td>@order.DocEntry</td>
+                        <td>@order.CardCode</td>
+                        <td>@order.CardName</td>
+                        <td>
+                            @switch (order.GroupNum)
+                            {
+                                case -1:
+                                    <text>"Наличные"</text>
+                                    ;
+                                    break;
+                                case 1:
+                                    <text>"При отгрузке"</text>
+                                    ;
+                                    break;
+                                case 2:
+                                    <text>"Кредит 7"</text>
+                                    ;
+                                    break;
+                                case 3:
+                                    <text>"Кредит 14"</text>
+                                    ;
+                                    break;
+                                case 4:
+                                    <text>"Кредит 30"</text>
+                                    ;
+                                    break;
+                                case 5:
+                                    <text>"Перечисление"</text>
+                                    ;
+                                    break;
+                                case 6:
+                                    <text>"Консигнация"</text>
+                                    ;
+                                    break;
+                                case 7:
+                                    <text>"Реализация"</text>
+                                    ;
+                                    break;
+                            }
+                        </td>
+                        <td>@order.DocDate.ToShortDateString()</td>
+                        <td>@order.DocTotal</td>
+                        <td>@order.Comments</td>
+                        <td>
+                            <input name="selectedOrders" value="@order.DocEntry" type="checkbox" />
+                        </td>
+                        <td>
+                                <button class="div_right_livt">
+                                    <a class="text-light"  asp-page="/OrderItemPage" asp-route-id="@order.DocEntry">Товары</a>
+                                </button>
+                               
+                        </td>
+                    </tr>
+                }
+            }
+        }
+        </thead>
+    </table>
+    <div>
+        <button class="div_right_livt" value="Send">Отправить данные</button>
+    </div>
+</form>

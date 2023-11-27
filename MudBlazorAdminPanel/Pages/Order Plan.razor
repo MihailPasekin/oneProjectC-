@@ -1,0 +1,73 @@
+﻿@page "/merchPlanCop"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@inject IOinvService OinvService
+
+<body>
+    
+        <div class="row">
+            <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12" style=" margin-bottom:20px;">
+            <MudTable Items="@Oinvs" Dense="false" Hover="true" Bordered="true" Striped="true">
+                   <HeaderContent>
+                      <MudTr>
+                            <MudTh>ИД сотрудника</MudTh>
+                            <MudTh>План на дату</MudTh>
+                            <MudTh>Комментарий</MudTh>
+                    </MudTr>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTr>
+                                <MudTd onclick="()=>{merchPlan.PlanDetails = merchplan.PlanDetails;}">
+                                    <MudTd></MudTd>
+                                    <MudTd>@context.EmpId</MudTd>                                  
+                                    <MudTd></MudTd>
+                                    <MudTd>@context.PlanDate</MudTd>
+                                    <MudTd>@context.Coment</MudTd>
+                                    </MudTd>
+                            </MudTr>
+                        </RowTemplate>
+                </MudTable>
+            </div>
+
+        <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <MudTable Items="@Oinvs" Dense="false" Hover="true" Bordered="true" Striped="true">
+                 <HeaderContent>
+                       <MudTr>
+                            <MudTh>Заказчик</MudTh>
+                       </MudTr>
+
+                </HeaderContent>
+                    <RowTemplate>
+                        @if (Oinvs != null)
+                        {
+                            @foreach (var merchdetils in merchPlan.PlanDetails ?? new List<PlanDetail>())
+                            {
+                                <MudTr>
+                                    <MudTd>@merchdetils.CardName</MudTd>
+                                </MudTr>
+                            }
+                        }
+                   </RowTemplate>
+                </MudTable>
+            </div>
+        </div>
+    
+</body>
+
+@code{
+    private MerchPlan merchPlan = new MerchPlan();
+    private List<MerchPlan> Oinvs;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Oinvs = await OinvService.MerchPlansAll();
+    }
+}

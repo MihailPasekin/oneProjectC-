@@ -1,0 +1,53 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Style="background-color: rgba(46, 157, 209)">
+        <div class="d-flex justify-center" style="width: 100%; ">
+            <MudStack Row="true">
+                <MudButton Href="login" Match="NavLinkMatch.All">Логин</MudButton>
+                <MudButton Href="kassa" Match="NavLinkMatch.Prefix">Кассир</MudButton>
+                <MudButton Href="orderPage" Match="NavLinkMatch.Prefix">Заказы</MudButton>
+                <MudMenu Label="Отчет мерчендайзеров" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" IconColor="Color.Primary">
+                    <MudMenuItem Href="merchPlan">Создать план</MudMenuItem>
+                    <MudMenuItem Href="merchPlanCop">Созданные планы</MudMenuItem>
+                    <MudMenuItem Href="ReportMerchPlan">Выполненные планы</MudMenuItem>
+                    <MudMenuItem Href="merchvisit">Посещение Мерчендайзеров</MudMenuItem>
+                </MudMenu>
+                <MudMenu Label="Отчет Бухгалтерии" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" IconColor="Color.Primary">
+                    <MudMenuItem Href="dailyCheckoutReportKassa">Отчет кассы ежедневный</MudMenuItem>
+                    <MudMenuItem Href="okreport">ОК отчет</MudMenuItem>
+                    <MudMenuItem Href="creditReport">Отчет по кредитам</MudMenuItem>
+                    <MudMenuItem Href="percentreport">Отчет "Проценты"</MudMenuItem>
+                    <MudMenuItem Href="consignmentreport">Отчет "Консигмент"</MudMenuItem>
+                    <MudMenuItem Href="reportprepayment">Отчет "Аванс"</MudMenuItem>
+                </MudMenu>
+                <MudMenu Label="Отчет Склад" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" IconColor="Color.Primary">
+                    <MudMenuItem Href="itemloading">Отчет "Подбор товаров"</MudMenuItem>
+                    <MudMenuItem Href="forwarderdoclist">Отчет "Список документов экспедитора"</MudMenuItem>
+                    <MudMenuItem Href="reportquantitystock">Отчет "Количество товаров на складе"</MudMenuItem>
+                    <MudMenuItem Href="invoicefordelivery">Открузка "Фактура для доставки"</MudMenuItem>
+                </MudMenu>
+            </MudStack>
+        </div>
+
+    </MudAppBar>
+   
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

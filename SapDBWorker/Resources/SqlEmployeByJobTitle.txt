@@ -1,0 +1,18 @@
+select 
+	ohem."empID", 
+	ohem."firstName", 
+	ohem."lastName", 
+	ohem."middleName", 
+	ohem."sex", 
+	ohem."jobTitle", 
+	ohem."dept", 
+	ohem."birthDate",
+	ohem."mobile",
+	ohem."homeTel",
+	ohem."email",
+	ohem."workStreet",
+	ohem."workCity" 
+from 
+	test.OHEM ohem
+where ohem."jobTitle" = TITLE
+;

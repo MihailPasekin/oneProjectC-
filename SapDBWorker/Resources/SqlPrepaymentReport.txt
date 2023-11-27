@@ -1,0 +1,14 @@
+select 
+	ODPO."DocNum",
+	ODPO."DocDate",
+	ODPO."CardCode",
+	ODPO."CardName",
+	ODPO."DocTotal",
+	CONCAT(OHEM."firstName",CONCAT(' ', OHEM."lastName")) as "Name" 
+from 
+	test.ODPO,
+	test.OHEM 
+where 
+	ODPO."CANCELED" = 'N' 
+	and ODPO."OwnerCode" = OHEM."empID"
+	and ODPO."DocDate" between FROMDATE and TODATE ;

@@ -1,0 +1,133 @@
+﻿@page "/orderPage"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.SapObjects;
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+
+@inject NavigationManager navigationmanager
+@inject IOinvService OinvService
+@inject INavigation navigationParams
+
+<PageTitle>Order Page</PageTitle>
+<h3 class="colorFont"> Order Page </h3>
+
+<body>
+
+    <MudTable Items="@Model" Dense="false" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Номер документа</MudTh>
+            <MudTh>Код заказчика</MudTh>
+            <MudTh>Название заказчика</MudTh>
+            <MudTh>Тип оплаты</MudTh>
+            <MudTh>Дата</MudTh>
+            <MudTh>Сумма заказа</MudTh>
+            <MudTh>Комментарий</MudTh>
+            <MudTh>Подтверждение</MudTh>
+            <MudTh>Товары</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="DocNum">@context.DocNum</MudTd>
+            <MudTd DataLabel="CardCode">@context.CardCode</MudTd>
+            <MudTd DataLabel="CardName">@context.CardName</MudTd>
+            <MudTd DataLabel="GroupNum">
+                @switch (context.GroupNum)
+                {
+                    case -1:
+                        <text>"Наличные"</text>
+                        ;
+                        break;
+                    case 1:
+                        <text>"При отгрузке"</text>
+                        ;
+                        break;
+                    case 2:
+                        <text>"Кредит 7"</text>
+                        ;
+                        break;
+                    case 3:
+                        <text>"Кредит 14"</text>
+                        ;
+                        break;
+                    case 4:
+                        <text>"Кредит 30"</text>
+                        ;
+                        break;
+                    case 5:
+                        <text>"Перечисление"</text>
+                        ;
+                        break;
+                    case 6:
+                        <text>"Консигнация"</text>
+                        ;
+                        break;
+                    case 7:
+                        <text>"Реализация"</text>
+                        ;
+                        break;
+                }
+            </MudTd>
+            <MudTd DataLabel="DocDate">@context.DocDate.ToString("dd.MM.yyyy")</MudTd>
+            <MudTd DataLabel="DocTotal">@context.DocTotal</MudTd>
+            <MudTd DataLabel="Comments">@context.Comments</MudTd>
+            <MudTd> 
+                <MudCheckBox T="bool"  CheckedChanged="@(e => CheckboxClicked(context, e))"></MudCheckBox>
+            </MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(()=>NavigatorPageItem(context.DocEntry))">Подробности</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+    <div style="padding-top:20px"></div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSubmit" EndIcon="@Icons.Material.Filled.Send">Отправить данные</MudButton>
+</body>
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int empId { get; set; }
+    private List<ORDR> Model;
+    public List<int> selectedOrders = new List<int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        navigationParams.ClearNavigationStack();
+        Model = (await OinvService.GetSapOrders());
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSubmit()
+    {
+        await OinvService.OnPostCreateDelivery(selectedOrders);
+        Model = (await OinvService.GetSapOrders());
+        await Task.CompletedTask;
+    }
+
+    private async Task NavigatorPageItem(int id)
+    {
+        navigationParams.SetPrevParams(new Dictionary<string, string>() { { "orderPage", "" } });
+        navigationmanager.NavigateTo($"orderItemPage?id={id}", false);
+        await Task.CompletedTask;
+    }
+
+    public void CheckboxClicked(ORDR order, object? eventArgs)
+    {
+        if (selectedOrders.Contains(order.DocEntry))
+        {
+            if(eventArgs is bool && (bool)eventArgs == false)
+            {
+                selectedOrders.Remove(order.DocEntry);
+            }
+        }
+        else
+        {
+            selectedOrders.Add(order.DocEntry);
+        }
+    }
+}

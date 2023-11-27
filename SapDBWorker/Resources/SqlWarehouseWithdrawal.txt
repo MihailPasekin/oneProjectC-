@@ -1,0 +1,19 @@
+select 
+oitw."ItemCode",
+oitm."ItemName",
+oitw."OnHand",
+oitw."IsCommited",
+oitw."OnOrder"
+from test.OITM oitm
+left join test.OITW oitw on oitm."ItemCode" = oitw."ItemCode"
+where 1=1
+replaseidproductGroup
+replasestock
+response
+group by 
+oitw."ItemCode",
+oitm."ItemName",
+oitw."OnHand",
+oitw."IsCommited",
+oitw."OnOrder"
+;

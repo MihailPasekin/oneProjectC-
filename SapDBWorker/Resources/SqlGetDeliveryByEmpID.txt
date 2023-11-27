@@ -1,0 +1,18 @@
+select 
+	"DocEntry",	
+	"DocNum",
+	"DocStatus",
+	"DocDate",
+	"DocTime",
+	"CardCode",
+	"CardName",
+	"DocTotal",
+	(CASE WHEN "GroupNum"='-1' THEN 'Cash'  
+		WHEN "GroupNum"='1' OR "GroupNum"='2' OR "GroupNum"='3' OR "GroupNum"='4'  THEN 'Credit' 
+		WHEN "GroupNum"='5' THEN 'Bank' 
+		WHEN "GroupNum"='6' THEN 'Consignment' END) AS "PayType" 
+	from test.odln 
+	where 
+		"U_Agent" = 'empId' 
+		and "DocStatus" = 'O' 
+	order by "CardCode" asc

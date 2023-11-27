@@ -1,0 +1,267 @@
+﻿@page "/consignmentreport"
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccounting AccountingService
+
+<body class="body ,colorFont">
+    <div style="padding-top:20px;"></div>
+    <h3>СonsignmentReport</h3>
+    <div style="padding-top:20px;"></div>
+    <label for="exampleInputComment">Найти клиента</label>
+    <input @onchange="FilterTextChangedEmpoe" class="form-control" type="text" placeholder="поиск">
+    <div style="padding-top:20px;"></div>
+        <label for="exampleInputComment">Выбрать сотрудника</label>
+        <select class="form-control" id="emploe" @onchange="EmployeSelected">
+            <option selected>Выбрать...</option>
+            @foreach (var emploe in listClient)
+            {
+                <option value="@emploe.CardCode">@emploe.CardCode @emploe.CardName</option>
+            }
+        </select>
+    <div style="padding-top:20px;"></div>
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">С даты</h3>
+        </div>
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="FromDate"></InputDate>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">По дату</h3>
+        </div>
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="ToDate"></InputDate>
+        </div>
+    </div>
+    <div>
+        <button class=" btn-lg btn-primary, input_color2" @onclick="()=>GetReport()">Показать отчет</button>
+    </div>
+    <div style="padding:30px"></div>
+    <table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+        <thead class="model_table">
+            <tr>
+                <th>ID пос-ния</th>
+                <th>Номер пос-ния</th>
+                <th>Дата пос-ния</th>
+                <th>Код товара</th>
+                <th>Наим-ние товара</th>
+                <th>Кол-во на начало</th>
+                <th>Пост-ния в периоде</th>
+                <th>Возвраты в периоде</th>
+                <th>Кол-во на конец</th>
+                <th>Продано</th>
+                <th>Рек. цена</th>
+                <th>Вознагр. ком-ра</th>
+                <th>Выплата комитенту</th>
+                <th>Цена пост-ния</th>
+                <th>Сумма на начало (приходная цена)</th>
+                <th>Сумма на начало (рек. цена)</th>
+                <th>Сумма пост-ния (приходная цена)</th>
+                <th>Сумма пост-ния (рек. цена)</th>
+                <th>Сумма на конец (приходная цена)</th>
+                <th>Сумма на конец (цена продажи)</th>
+            </tr>
+            @if (consignmentList != null)
+            {
+                @foreach (var consignment in consignmentList)
+                {
+                    <tr>
+                        <td>@consignment.IdReceipts</td>
+                        <td>@consignment.ReceiptNumber</td>
+                        <td>@consignment.ReceiptDate.ToString("dd.MM.yyyy")</td>
+                        <td>@consignment.ProductCode</td>
+                        <td>@consignment.ProductName</td>
+                        <td>@consignment.QuantityAtStart</td>
+                        <td>@consignment.ReceiptsPeriod</td>
+                        <td>@consignment.ReturnsPeriod</td>
+                        <td>@consignment.QuantityAtEnd</td>
+                        <td>@consignment.Sales</td>
+                        <td>@consignment.RecPrice</td>
+                        <td>@consignment.CommissionRemuneration</td>
+                        <td>@consignment.PaymentPrincipal</td>
+                        <td>@consignment.AdmissionPrice</td>
+                        <td>@consignment.StartingAmountArrivalPrice</td>
+                        <td>@consignment.StartingAmountPriceDetails</td>
+                        <td>@consignment.ReceiptAmountArrivalPrice</td>
+                        <td>@consignment.ReceiptAmountRecommendedPrice</td>
+                        <td>@consignment.AmountEndEntryPrice</td>
+                        <td>@consignment.AmountEndSellingPrice</td>
+                    </tr>
+                }
+            }
+            <tr>
+
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td style="float:right">Итого:</td>
+                <td>@sumQuantityAtStart</td>
+                <td>@sumReceiptsPeriod</td>
+                <td>@sumReturnsPeriod</td>
+                <td>@sumQuantityAtEnd</td>
+                <td>@sumSales</td>
+                <td>@sumRecPrice</td>
+                <td>@sumCommissionRemuneration</td>
+                <td>@sumPaymentPrincipal</td>
+                <td>@sumAdmissionPrice</td>
+                <td>@sumStartingAmountArrivalPrice</td>
+                <td>@sumStartingAmountPriceDetails</td>
+                <td>@sumReceiptAmountArrivalPrice</td>
+                <td>@sumReceiptAmountRecommendedPrice</td>
+                <td>@sumAmountEndEntryPrice</td>
+                <td>@sumAmountEndSellingPrice</td>
+            </tr>
+        </thead>
+    </table>
+    
+    <div style="padding: 20px 20px;"></div>
+    
+    <div class="row">
+        <div class='col-sm-5'>
+            <h3 class="colorFontsizeform">
+                Сумма задолженности по оплате:
+            </h3>
+        </div>
+
+        <div class='col-sm-1'>
+            <span class="colorFontsizeform">@sumSumCreditTime</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class='col-sm-5'>
+            <h3 class="colorFontsizeform">Сумма реализации ТОВАРОВ КОМИТЕНТА за отчетный период составила </h3>
+        </div>
+
+        <div class='col-sm-1'>
+            <span class="colorFontsizeform">@sumSumrealizacion</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class='col-sm-5'>
+            <h3 class="colorFontsizeform">Сумма вознаграждения КОМИССИОНЕРА:</h3>
+        </div>
+
+        <div class='col-sm-1'>
+            <span class="colorFontsizeform">@sumCommissionRemuneration</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class='col-sm-5'>
+            <h3 class="colorFontsizeform">Сумма причитающаяся КОМИТЕНТУ за вычетом вознаграждения КОМИССИОНЕРА:</h3>
+        </div>
+
+        <div class='col-sm-1'>
+            <span class="colorFontsizeform">@sumPaymentPrincipal</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class='col-sm-5'>
+            <h3 class="colorFontsizeform">
+                Сумма выплаты КОМИТЕНТУ  за отчётный период:
+            </h3>
+        </div>
+
+        <div class='col-sm-1'>
+            <span class="colorFontsizeform">@sumSumVplatCommisioner</span>
+        </div>
+    </div>
+    <div class="row">
+        <div class='col-sm-5'>
+            <h3 class="colorFontsizeform">
+                Сумма задолженности по оплате:
+            </h3>
+        </div>
+        <div class='col-sm-1'>
+            <span class="colorFontsizeform">@sumSumCreditOplat</span>
+        </div>
+    </div>
+    <div style="padding: 30px 30px;"></div>
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>
+</body>
+@code {
+    private List<Сonsignment> consignmentList = new List<Сonsignment>();
+
+    private DateTime FromDate { get; set; } = DateTime.Now;
+    private DateTime ToDate { get; set; } = DateTime.Now;
+    private string clientFilterVal = " "; //11498V
+    private List<ConsigmentClient> listClient = new List<ConsigmentClient>();
+    private List<ConsigmentClient> listClientFiltered = new List<ConsigmentClient>();
+    private string clientName = "11498V";
+
+    private int sumQuantityAtStart { get { return consignmentList.Sum(p => p.QuantityAtStart); } }
+    private int sumReceiptsPeriod { get { return consignmentList.Sum(p => p.ReceiptsPeriod); } }
+    private int sumReturnsPeriod { get { return consignmentList.Sum(p => p.ReturnsPeriod); } }
+    private int sumQuantityAtEnd { get { return consignmentList.Sum(p => p.QuantityAtEnd); } }
+    private int sumSales { get { return consignmentList.Sum(p => p.Sales); } }
+    private double sumRecPrice { get { return consignmentList.Sum(p => p.RecPrice); } }
+    private double sumCommissionRemuneration { get { return consignmentList.Sum(p => p.CommissionRemuneration); } }
+    private double sumPaymentPrincipal { get { return consignmentList.Sum(p => p.PaymentPrincipal); } }
+    private double sumAdmissionPrice { get { return consignmentList.Sum(p => p.AdmissionPrice); } }
+    private double sumStartingAmountArrivalPrice { get { return consignmentList.Sum(p => p.StartingAmountArrivalPrice); } }
+    private double sumStartingAmountPriceDetails { get { return consignmentList.Sum(p => p.StartingAmountPriceDetails); } }
+    private double sumReceiptAmountArrivalPrice { get { return consignmentList.Sum(p => p.ReceiptAmountArrivalPrice); } }
+    private double sumReceiptAmountRecommendedPrice { get { return consignmentList.Sum(p => p.ReceiptAmountRecommendedPrice); } }
+    private double sumAmountEndEntryPrice { get { return consignmentList.Sum(p => p.AmountEndEntryPrice); } }
+    private double sumAmountEndSellingPrice { get { return consignmentList.Sum(p => p.AmountEndSellingPrice); } }
+    private int sumSumCreditTime = 0;
+    private double sumSumrealizacion = 0;
+    private int sumSumVplatCommisioner = 0;
+    private double sumSumCreditOplat = 0;
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? To { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+            
+        await Task.CompletedTask;
+    }
+
+    public async Task GetReport()
+    {
+        From = From ?? FromDate.Date.ToString("yyyy_MM_dd");
+        To = To ?? ToDate.Date.ToString("yyyy_MM_dd");
+        consignmentList = await AccountingService.GetСonsignmentAsync(From.Replace("_", "."), To.Replace("_", "."), clientName);
+        sumSumrealizacion = sumCommissionRemuneration + sumPaymentPrincipal;
+        sumSumCreditOplat = sumSumCreditTime + sumCommissionRemuneration - sumSumVplatCommisioner;
+        await Task.CompletedTask; 
+    }
+
+    public async void FilterTextChangedEmpoe(ChangeEventArgs eventArgs)
+    {
+        clientFilterVal = eventArgs.Value.ToString();
+        listClientFiltered = listClient.Where(p => p.CardName.Contains(clientFilterVal) || p.CardCode.Contains(clientFilterVal)).ToList();
+        await Task.CompletedTask;
+    }
+    protected async void CreateDocument()
+    {
+        await excelService.GenerateWeatherСonsignmentAsync(FromDate, ToDate, JS, consignmentList, "export.xlsx");
+        await Task.CompletedTask;
+    }
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        clientName = eventArgs.Value.ToString();
+       
+    }
+
+}

@@ -1,0 +1,73 @@
+select a."route",
+	a."territoty",
+	a."agent",
+	a."docNum",
+	a."deliveryDate",
+	a."client",
+	a."orderSum",
+	a."consignment",
+	a."transfer",
+	a."credit7",
+	a."credit14",
+	a."credit30",
+	(CASE WHEN a."expired" > 0 then a."expired" else 0 end) as "ostalos",
+	(CASE WHEN a."expired" < 0 then a."expired" else 0 end) as "expired",
+	a."balance",
+	a."creditSum",
+	a."SumOplaty",
+	a."SumVozvrat"
+from (
+	SELECT S1."U_RouteID" as "route",  
+		S1."Territory" as "territoty",
+		CONCAT(S6."lastName", CONCAT(' ', S6."firstName")) as "agent",
+		S0."DocNum" as "docNum", 
+		S0."DocDueDate" AS "deliveryDate", 
+		S1."CardName" AS "client", 
+		S0."DocTotal" as "orderSum",
+		(CASE WHEN S0."GroupNum"='7' THEN S3."DocTotal" ELSE 0 END) AS "consignment",
+		(CASE WHEN S0."GroupNum"='5' THEN S3."DocTotal" ELSE 0 END) AS "transfer",
+		(CASE WHEN S0."GroupNum"='2' THEN S3."DocTotal" ELSE 0 END) as "credit7", 
+		(CASE WHEN S0."GroupNum"='3' THEN S3."DocTotal" ELSE 0 END) as "credit14", 
+		(CASE WHEN S0."GroupNum"='4' THEN S3."DocTotal" ELSE 0 END) as "credit30", 
+		(((DAYS_BETWEEN(CURRENT_DATE, S0."DocDueDate") + (CASE WHEN S0."GroupNum"='2' THEN 7 ELSE 0 END) ) + ( CASE WHEN S0."GroupNum"='3' THEN 14 ELSE 0 END ) ) + ( CASE WHEN S0."GroupNum"='4' THEN 30 ELSE 0 END )+	( CASE WHEN S0."GroupNum"='7' THEN 40 ELSE 0 END )+( CASE WHEN S0."GroupNum"='5' THEN 10 ELSE 0 END )) AS "expired", 
+		( S3."DocTotal" - ( CASE WHEN  orct."DocTotal" IS NULL THEN 0 ELSE  orct."DocTotal" END) ) AS "balance",
+		(CASE WHEN S0."GroupNum"='2' OR S0."GroupNum"='3' OR S0."GroupNum"='4' THEN S3."DocTotal" ELSE 0 END) AS "creditSum",
+		case when orct."DocTotal" is null then 0 else orct."DocTotal" end as "SumOplaty",
+		(select (case when ordn."DocTotal" is null then 0 else ordn."DocTotal" end)  from 
+			test.rdn1 rdn, 
+			test.ordn ordn 
+		where 1=1
+			and ordn."CANCELED" = 'N'
+			and D0."DocEntry" = rdn."BaseEntry"
+			and ordn."DocEntry" = rdn."DocEntry"
+			group  by D0."DocEntry", ordn."DocTotal"
+		) as "SumVozvrat"
+	FROM test.ORDR S0
+		LEFT JOIN RDR1 T1 ON S0."DocEntry" = T1."DocEntry"
+		left JOIN OCRD S1 ON S1."CardCode" = S0."CardCode"
+		left JOIN OHEM S6 ON S6."Code" = S0."OwnerCode"
+		LEFT JOIN DLN1 D1 ON T1."DocEntry" = D1."BaseEntry"
+		LEFT JOIN ODLN D0 ON D1."DocEntry" = D0."DocEntry"
+		LEFT JOIN INV1 S4 ON  D1."DocEntry" = S4."BaseEntry"
+		LEFT JOIN OINV S3 ON S4."DocEntry" = S3."DocEntry"
+		left JOIN (select
+					oinv."DocEntry", 
+					oinv."CardCode",
+					test.AAAGetTotalPayments(oinv."CardCode", oinv."DocEntry") as "DocTotal"
+				from 
+					test.oinv) orct ON S3."DocEntry" = orct."DocEntry"
+	WHERE  S0."DocNum" IS NOT NULL
+		AND S0."GroupNum" != -1
+		AND S0."CANCELED" = 'N'
+		and S3."CANCELED" = 'N'
+		--AND S0."OwnerCode" IS NOT NULL
+		AND S0."DocDate" BETWEEN '01.05.2023' AND TODATE
+		AND (orct."DocTotal" < S3."DocTotal" OR S3."PaidToDate" IS NULL OR S3."PaidToDate" = 0)
+	GROUP BY S1."U_RouteID" , S1."CardName", S0."DocDueDate", S0."CardCode", S3."DocTotal", S0."DocNum", S0."GroupNum",  S6."firstName", S6."lastName", S3."PaidToDate",orct."DocTotal",D0."DocEntry",S0."DocTotal",S1."Territory"
+	ORDER BY S1."U_RouteID", S0."DocDueDate"
+) a
+where XXXX
+--a."territoty" = 134
+--a."route" like ROOT
+and a."balance" > 0 
+

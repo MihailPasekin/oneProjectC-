@@ -1,0 +1,111 @@
+﻿@page "/ReportMerchPlan"
+
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@inject IOinvService OinvService
+
+<body class="body">
+    <div class="col-12">
+        <label for="exampleInputComment" >Найти сотрудника</label>
+        <input @onchange="FilterTextChangedEmpoe" class="form-control" type="text" placeholder="поиск">
+        <div style="padding-top:20px;"></div>
+        <label for="exampleInputComment" >Выбрать сотрудника</label>
+        <EditForm Model="@merchPlanDitail">
+            <select class="form-control" id="emploe" @onchange="EmployeSelected">
+                <option selected>Выбрать...</option>
+                @foreach (var emploe in EmploeFiltered)
+                {
+                    <option value="@emploe.SapEmployeId">@emploe.EmployeSecondName @emploe.EmployeName</option>
+                }
+            </select>
+            <div style="padding-top:20px;"></div>
+            <button class="input_color" type="submit">Добавить заказщика</button>
+        </EditForm>
+    </div>
+    <div style="padding-top:20px;"></div>
+    <table border=2 cellspacing="0" cellpadding="10" width="100%" class="model_table, colorFont">
+        <thead style="height: 10%; overflow: auto;" class="model_table">
+            <tr>
+                <th>EmpId</th>
+                <th >PlanDetailId</th>
+                <th >CreatedAt</th>
+            </tr>
+            @if (PlanReportAll != null)
+            {
+                @foreach (var merchplan in PlanReportAll)
+                {
+                    <tr @onclick="()=>{
+                        merchPlan.PlanId = merchplan.PlanId; photos = merchplan.Photos;
+                    }">
+                        <td>@merchplan.Employe.EmployeHistory.First().Name @merchplan.Employe.EmployeHistory.First().SecondName</td>
+                        <td>@merchplan.MerchPlan.PlanDate</td>
+                        <td>@merchplan.PlanDetail.CardName</td>
+                    </tr>
+                }
+            }
+        </thead>
+    </table>
+  
+    
+   
+    @if (photos.Count > 0)
+    {
+        @foreach (var photo in photos)
+        {
+            <div class="card mb-3" style="max-width: 540px;">
+                <div class="row">
+                    <div class="col-md-8">
+                        <img src="/UploadedFiles/@photo.FullFileName.Split('\\').Last()" class="img-fluid rounded-start" alt="...">
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Card title</h5>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    
+        
+</body>
+
+@code {
+    private PlanDetail merchPlanDitail = new PlanDetail();
+    private MerchPlan merchPlan = new MerchPlan();
+    private List<Photo> photos = new List<Photo>();
+    private List<EmployeView> EmploeFiltered = new List<EmployeView>();
+    private List<EmployeView> EmploeAll = new List<EmployeView>();
+    private List<PlanReport> PlanReportAll = new List<PlanReport>();
+    private string emploeFilterVal = "";
+    private string employeName = "";
+    private List<MerchPlan> Oinvs;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Oinvs = await OinvService.MerchPlansAll();
+        PlanReportAll = await OinvService.GetAllPlanReportAsync();
+        EmploeAll = await OinvService.GetAllEmployesAsync();
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+    }
+
+    public void FilterTextChangedEmpoe(ChangeEventArgs eventArgs)
+    {
+        emploeFilterVal = eventArgs.Value.ToString();
+
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+    }
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        merchPlan.EmpId = int.Parse(eventArgs.Value.ToString());
+        employeName = EmploeAll.Where(p => p.SapEmployeId == merchPlan.EmpId).Select(p => new { name = $"{p.EmployeName} {p.EmployeSecondName}" }).First().name;
+    }
+}

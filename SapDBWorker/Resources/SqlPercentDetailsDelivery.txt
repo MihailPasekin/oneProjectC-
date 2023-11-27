@@ -1,0 +1,14 @@
+SELECT 
+S8."DocEntry", S8."U_Agent" as "code", orct."CardName" as "Name",  orct."DocTotal" as "sum",orct."DocDate" as "Date",orct."CardCode" , s8."DocNum"
+FROM OINV S8
+left JOIN rct2 rct ON S8."DocEntry" = rct."DocEntry"
+left JOIN Orct orct ON rct."DocNum" = orct."DocEntry"
+left JOIN OHEM S5 ON S8."U_Agent" = S5."Code"
+left JOIN HEM6 S6 ON S5."Code" = S6."empID"
+left JOIN "@BMM_OHTY_EXT" S7 ON S7."Code" = S6."roleID"
+WHERE 
+S6."roleID" = 4
+and orct."DocDate" BETWEEN FROMDATE AND TODATE
+AND S8."CANCELED" = 'N'
+and orct."Canceled" = 'N'
+and S8."U_Agent" = XXXX

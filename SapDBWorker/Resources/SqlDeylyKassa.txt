@@ -1,0 +1,132 @@
+select
+	case when b."Name" is null
+	then
+		case when b."CardCode" is null  then 'Другие' else b."CardCode" end
+	else
+		b."Name"
+	end as "Name",
+	b."CashSum",
+	b."CreditSum",
+	b."Bank",
+	b."Consignment",
+	b."DocTotal",
+	b."raschod",
+	b."perevod"
+from
+(
+	Select
+		a."U_Supervisor",
+		a."U_Agent",
+		a."CardCode",
+		(case when a."Account" = '6212 51 02'
+		then
+			(
+			select 
+				(
+					CASE WHEN a."U_Supervisor" is not null  
+					THEN  
+						CONCAT(S5."firstName",CONCAT(' ', S5."lastName")) 
+					END
+				) 
+			from 	Test.OHEM S5
+					left JOIN Test.HEM6 S6 ON S5."Code" = S6."empID" and S6."U_EndDate" is null	
+			where a."U_Supervisor" = S5."Code"
+			)
+		else
+			(	
+			select 
+				(
+					CASE WHEN a."U_Agent" is not  null  
+					THEN CONCAT(S5."firstName",CONCAT(' ', S5."lastName")) 
+					END
+				)
+			from 	Test.OHEM S5
+					left JOIN Test.HEM6 S6 ON S5."Code" = S6."empID" and S6."U_EndDate" is null	
+			where a."U_Agent" = S5."Code"
+			)
+		end
+		) as "Name",
+		sum (a."CashSum") as "CashSum",
+		sum (a."CreditSum") as "CreditSum",
+		sum (a."Bank") as "Bank",
+		sum (a."Consignment") as "Consignment",
+		sum((CASE when a."perevod" is null then 0 else (case when a."DebCred" = 'D' then  a."perevod" else a."perevod" * -1  end ) end)) as "DocTotal",
+		sum(a."raschod") as "raschod",
+		sum(a."perevod") as "perevod"
+	from
+	(
+	select 
+		S8."U_Supervisor",
+		S8."U_Agent",
+		ovpm."CardCode",
+		trans."Account",
+		(CASE WHEN S8."GroupNum" = '-1' then SUM(orct."CashSum") ELSE 0 END) as "CashSum",
+		(CASE WHEN "GroupNum"='1' OR "GroupNum"='2' OR "GroupNum"='3' OR "GroupNum"='4'  THEN SUM(orct."CashSum")ELSE 0 END) as"CreditSum",
+		(CASE WHEN "GroupNum"='5' THEN SUM(orct."CashSum")ELSE 0 END) as "Bank",
+		(CASE WHEN "GroupNum"='6' THEN SUM(orct."CashSum")ELSE 0 END) as "Consignment",
+		SUM(S8."DocTotal") as "DocTotal",
+		trans."DebCred", 
+		--(Case when ovpm."CashSum" is null then 0 else sum(ovpm."CashSum") end) as "perevod"
+		(Case when ovpm."DocType" = 'A' 
+		then  (Case when ovpm."CashSum" is null then 0 else sum(ovpm."CashSum") end)
+		else
+		0
+		end) as "perevod",
+		(Case when ovpm."DocType" = 'S' 
+		then  (Case when ovpm."CashSum" is null then 0 else sum(ovpm."CashSum") end)
+		else
+		0
+		end) as "raschod"
+	from 
+		(select 
+			jdt."Account",
+			jdt."BaseRef" ,
+			jdt."TransType",
+			jdt."Debit",
+			jdt."Credit",
+			jdt."DebCred"
+		from test.jdt1 jdt
+		where 
+			jdt."Account" = KASSA
+			and jdt."RefDate" between FROMDATE AND TODATE
+			and jdt."TransId" not in (select 
+			ojdt."TransId" 
+		from
+			test.OJDT ojdt
+		where 
+			ojdt."RefDate" between FROMDATE AND TODATE
+		
+			and (ojdt."StornoToTr" is not null or ojdt."TransId" in (select 
+																		ojdt2."StornoToTr" 
+																	from Test.OJDT ojdt2 
+																	where ojdt2."RefDate" 
+																	between FROMDATE AND TODATE
+																	and ojdt2."StornoToTr" is not null 
+																	and ojdt2."TransType" in (13,24,46) ))
+			and ojdt."TransType" in (13,24,46))
+		) trans
+		left join test.ORCT orct on orct."DocNum" = trans."BaseRef" and trans."TransType"  = 24  and orct."Canceled" = 'N'
+		left join test.OVPM ovpm on ovpm."DocNum" = trans."BaseRef" and trans."TransType"  = 46
+		left join Test.OINV S8 ON S8."ReceiptNum" = orct."DocEntry"
+		
+	where 1=1
+	GROUP BY 
+			S8."U_Supervisor",
+			S8."U_Agent",
+			S8."GroupNum", 
+			trans."Account",
+			trans."Debit",
+			trans."Credit",
+			ovpm."CashSum",
+			ovpm."DocEntry",
+			trans."DebCred",
+			ovpm."CardCode",
+			ovpm."DocType"
+	)a
+	group by
+	a."U_Supervisor",
+	a."Account",
+	a."CardCode",
+	a."U_Agent"
+)b
+;

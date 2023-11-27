@@ -1,0 +1,41 @@
+SELECT 
+a."DocDate",
+sum(a."SumZakaza") as "SumZakaza", 
+sum(a."SumProdaji") as "SumProdaji",
+sum(a."SumOplaty") as "SumOplaty", 
+sum((case when a."SumVozvrat" is null then 0 else a."SumVozvrat" end)) as "SumVozvrat"
+FROM
+(
+	SELECT  
+	ordr."DocNum",
+	ordr."DocDate", 
+	Case when ordr."DocTotal" is null then 0 else ordr."DocTotal" end as "SumZakaza", 
+	case when oinv."DocTotal" is null then 0 else oinv."DocTotal" end as "SumProdaji", 
+	case when orct."CashSum" is null then 0 else orct."CashSum" end as "SumOplaty",
+	(select (case when ordn."DocTotal" is null then 0 else ordn."DocTotal" end)  from 
+		test.rdn1 rdn, 
+		test.ordn ordn 
+	where 1=1
+		and ordn."CANCELED" = 'N'
+		and odln."DocEntry" = rdn."BaseEntry"
+		and ordn."DocEntry" = rdn."DocEntry"
+		group  by odln."DocEntry", ordn."DocTotal"
+	) as "SumVozvrat"
+FROM TEST.ORDR ordr
+	left JOIN TEST.RDR1 rdr ON ordr."DocEntry" = rdr."DocEntry"
+	left JOIN TEST.ODLN odln ON rdr."TrgetEntry" = odln."DocEntry"
+	left JOIN TEST.DLN1 dln ON odln."DocEntry" = dln."DocEntry"
+	left JOIN TEST.OINV oinv ON dln."TrgetEntry" = oinv."DocEntry"
+	left JOIN TEST.rct2 rct ON oinv."DocEntry" = rct."DocEntry"
+	left JOIN TEST.Orct orct ON rct."DocNum" = orct."DocEntry"
+WHERE
+	ordr."DocNum" IS NOT NULL
+	and ordr."GroupNum" = -1
+	AND ordr."CANCELED" = 'N'
+	and oinv."CANCELED" = 'N'
+	and orct."Canceled" = 'N'
+	AND ordr."DocDate" BETWEEN FROMDATE AND TODATE
+group by 	ordr."DocNum",
+	ordr."DocDate", odln."DocEntry",ordr."DocTotal", oinv."DocTotal",orct."CashSum"
+) a
+group by a."DocDate";

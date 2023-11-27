@@ -1,0 +1,102 @@
+select 
+sele2."CashAcct" ,
+sele2."comming",
+sele2."startday" as "startdayClean" ,
+sele2."startday" + 
+	(case when sele2."incometransactbefore" is null then 0 else sele2."incometransactbefore" end) - 
+	(case when sele2."trbefore" is null then 0 else sele2."trbefore" end)  - 
+	(case when sele2."expensebefore" is null then 0 else sele2."expensebefore" end) as "startday",
+sele2."expense",
+sele2."transct",
+sele2."trbefore",
+sele2."expensebefore",
+sele2."incometransact",
+sele2."incometransactbefore",
+sele2."endday" as "enddayclean",
+((sele2."endday") + 
+	(case when sele2."incometransact" is null then 0 else sele2."incometransact" end) +
+	(case when sele2."incometransactbefore" is null then 0 else sele2."incometransactbefore" end)-
+	(case when sele2."trbefore" is null then 0 else sele2."trbefore" end)- 
+	(case when sele2."transct" is null then 0 else sele2."transct" end ) - 
+	(Case when sele2."expense" is null then 0 else sele2."expense" end)) -
+	(case when sele2."expensebefore" is null then 0 else sele2."expensebefore" end)
+  as "endday"
+from (SELECT 
+	T0."CashAcct", 
+	SUM(T0."OnDate") as "comming", 
+	SUM(T0."BeforeDate") as "startday", 
+	(SUM(T0."OnDate") +  SUM(T0."BeforeDate")) AS "endday" , 
+	(select 
+		sum (ovpm."CashSum")
+	from 
+		test.OVPM ovpm
+	Where
+		ovpm."Canceled" = 'N'
+		AND ovpm."CashAcct" = KASSA
+		and ovpm."DocDate" BETWEEN FROMDAY AND TODATE
+		--and ovpm."NoDocSum" <= 0
+		and ovpm."DocType" = 'S'
+	) as "expense",
+	(select 
+		sum (ovpm."CashSum")
+	from 
+		test.OVPM ovpm
+	Where
+		ovpm."Canceled" = 'N'
+		AND ovpm."CashAcct" = KASSA
+		and ovpm."DocDate" < FROMDAY
+		and ovpm."DocType" = 'S'
+	) as "expensebefore",
+	(select 
+		sum (ovpm."CashSum")
+	from 
+		test.OVPM ovpm
+	Where
+		ovpm."DocNum" Is not null 
+		and ovpm."Canceled" = 'N'
+		AND ovpm."CashAcct" = KASSA
+		and ovpm."DocDate" BETWEEN FROMDAY AND TODATE
+		and ovpm."DocType" = 'A')as "transct" ,
+	(select 
+		sum (ovpm."CashSum")
+	from 
+		test.OVPM ovpm
+	Where
+		ovpm."DocNum" Is not null 
+		and ovpm."Canceled" = 'N'
+		AND ovpm."CashAcct" = KASSA
+		and ovpm."DocDate" < FROMDAY
+		and ovpm."DocType" = 'A')as "trbefore" ,
+	(select 
+		sum (ovpm."CashSum")
+	from 
+		test.OVPM ovpm
+	Where
+		ovpm."DocNum" Is not null 
+		and ovpm."Canceled" = 'N'
+		AND ovpm."CardCode" = KASSA
+		and ovpm."DocDate" BETWEEN FROMDAY AND TODATE
+		and ovpm."DocType" = 'A')as "incometransact" ,
+	(select 
+		sum (ovpm."CashSum")
+	from 
+		test.OVPM ovpm
+	Where
+		ovpm."DocNum" Is not null 
+		and ovpm."Canceled" = 'N'
+		AND ovpm."CardCode" = KASSA
+		and ovpm."DocDate" < FROMDAY
+		and ovpm."DocType" = 'A')as "incometransactbefore" 
+	FROM (
+	SELECT S4."DocNum", S4."Canceled", S4."CashAcct",
+		(CASE WHEN S4."DocDate" BETWEEN FROMDAY AND TODATE THEN SUM(S4."CashSum") ELSE 0 END) as "OnDate", 
+		(CASE WHEN S4."DocDate" < FROMDAY THEN SUM(S4."CashSum") ELSE 0 END) as "BeforeDate"
+	FROM 
+		test.ORCT S4 
+	WHERE
+		S4."DocNum" IS NOT NULL
+		AND S4."Canceled" = 'N'
+		AND S4."CashAcct" = KASSA
+	GROUP BY S4."DocDate", S4."DocNum", S4."Canceled", S4."CashAcct"
+	) T0
+GROUP BY T0."CashAcct") sele2;

@@ -1,0 +1,96 @@
+﻿<header>
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="container">
+            <a class="navbar-brand" asp-area="" asp-page="/">ECommersAdminPanel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                <ul class="navbar-nav flex-grow-1">
+                    <AuthorizeView Roles="Admin">
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="adminpage" Match="NavLinkMatch.All">
+                                <span aria-hidden="true"></span> Настройки
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="login" Match="NavLinkMatch.All">
+                            <span aria-hidden="true"></span> Логин
+                        </NavLink>
+                    </li>
+                    <AuthorizeView Roles="Accountant, Admin, Operator">
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="kassa" Match="NavLinkMatch.All">
+                                <span aria-hidden="true"></span> Кассир
+                            </NavLink>
+                        </li>
+                        <ui class="nav-link">
+                            <li class="nav-item" data-toggle="dropdown" @onclick="e => this.showBuh=!this.showBuh">
+                                <span style="font-size:15px;">Отчет Бухгалтерии</span>
+                            </li>
+                            <CascadingValue name="DropdownBuh" Value="@this.showBuh">
+                                <ui class="dropdown-menu @(showBuh? "show":"")" @onmouseover="e => this.showBuh=true" @onmouseout="e => this.showBuh=false">
+                                    <li><a class="dropdown-item" href="dailyCheckoutReportKassa">Отчет кассы ежедневный</a></li>
+                                    <li><a class="dropdown-item" href="okreport">ОК отчет</a></li>
+                                    <li><a class="dropdown-item" href="creditReport">Отчет по кредитам</a></li>
+                                    <li><a class="dropdown-item" href="percentreport">Отчет "Проценты"</a></li>
+                                    <li><a class="dropdown-item" href="consignmentreport">Отчет "Консигмент"</a></li>
+                                    <li><a class="dropdown-item" href="reportprepayment">Отчет "Аванс"</a></li>
+                                </ui>
+                            </CascadingValue>
+                        </ui>
+                    </AuthorizeView>
+                    <AuthorizeView Roles="Operator, Admin">
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="orderPage">
+                                <span aria-hidden="true"></span> Заказы
+                            </NavLink>
+                        </li>
+
+                        <ui class="nav-link">
+                            <li class="nav-item" data-toggle="dropdown" @onclick="e => this.showWarehouse=!this.showWarehouse">
+                                <span style="font-size:15px;">Отчет Склад</span>
+                            </li>
+                            <CascadingValue name="DropdownWarehouse" Value="@this.showWarehouse">
+                                <ui class="dropdown-menu @(showWarehouse? "show":"")" @onmouseover="e => this.showWarehouse=true" @onmouseout="e => this.showWarehouse=false">
+                                    <li><a class="dropdown-item" href="itemloading">Отчет "Подбор товаров"</a></li>
+                                    <li><a class="dropdown-item" href="forwarderdoclist">Отчет "Список документов экспедитора"</a></li>
+                                    <li><a class="dropdown-item" href="reportquantitystock">Отчет "Количество товаров на складе"</a></li>
+                                    <li><a class="dropdown-item" href="invoicefordelivery">Открузка "Фактура для доставки"</a></li>
+                                </ui>
+                            </CascadingValue>
+                        </ui>
+                    </AuthorizeView>
+                    <AuthorizeView Roles="Merch, Admin">
+                        <ui class="nav-link">
+                            <li class="nav-item" data-toggle="dropdown" @onclick="e => this.show=!this.show">
+                                <span style="font-size:15px;">Отчет мерчендайзеров</span>
+                            </li>
+                            <CascadingValue name="Dropdown" Value="@this.show">
+                                <ui class="dropdown-menu @(show? "show":"")" @onmouseover="e => this.show=true" @onmouseout="e => this.show=false">
+                                    <li><a class="dropdown-item" href="merchPlan">Создать план</a></li>
+                                    <li><a class="dropdown-item" href="merchPlanCop">Созданные планы</a></li>
+                                    <li><a class="dropdown-item" href="ReportMerchPlan">Выполненные планы</a></li>
+                                    <li><a class="dropdown-item" href="merchvisit">Посещение Мерчендайзеров</a></li>
+                                </ui>
+                            </CascadingValue>
+                        </ui>
+                    </AuthorizeView>
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+@code {
+    private bool showBuh = false;
+    private bool showWarehouse = false;
+    private bool show = false;
+
+    private async Task LogOutAsync()
+    {
+
+    }
+}

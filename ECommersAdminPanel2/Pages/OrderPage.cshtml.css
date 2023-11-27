@@ -1,0 +1,44 @@
+﻿body {
+}
+
+.model_table {
+    width: 100%;
+    margin-top: 10px;
+}
+
+    .model_table tr:nth-child(even) {
+        background-color: #efefef;
+    }
+
+    .model_table tr:hover {
+        background-color: #cfcfcf;
+    }
+
+.div_right_livt {
+    margin-top: 10px;
+    float: right;
+}
+
+.div_left_livt {
+    margin-top: 10px;
+    float: left;
+}
+
+.input_color {
+    border-color: #008CBA;
+    background-color: #008CBA;
+    padding: 2px 16px;
+    color: white;
+}
+
+button {
+    border-color: #008CBA;
+    background-color: #008CBA;
+    padding: 7px 16px;
+    color: white;
+}
+
+.button:hover {
+    background-color: #4CAF50;
+    color: white;
+}

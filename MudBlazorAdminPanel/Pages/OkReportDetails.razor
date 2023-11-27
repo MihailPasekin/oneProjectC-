@@ -1,0 +1,70 @@
+﻿@page "/okreportdetails/{fromDate}"
+
+@using MudBlazorAdminPanel.Interfaces;
+@using EComersObjectLib.Objects;
+
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccounting AccountingService
+<body class="body"> 
+    <h4>Подробности OK отчет</h4>
+    <MudTable Items="@okReportDetails" Dense="false" Hover="true" Bordered="true" Striped="true">        
+           <HeaderContent>
+                <MudTh>Номер документа</MudTh>
+                <MudTh>Дата</MudTh>
+                <MudTh>Код заказщика</MudTh>
+                <MudTh>Имя заказчика</MudTh>
+                <MudTh>Сумма заказа</MudTh>
+                <MudTh>Сумма продажи</MudTh>
+                <MudTh>Сумма оплаты</MudTh>
+                <MudTh>Сумма возврата</MudTh>
+                <MudTh></MudTh>
+           </HeaderContent>           
+                     <RowTemplate>
+                        <MudTd>@context.DocNum</MudTd>
+                        <MudTd>@context.DocDate.ToString("dd.MM.yyyy")</MudTd>
+                        <MudTd>@context.CardCode</MudTd>
+                        <MudTd>@context.CardName</MudTd>
+                        <MudTd>@context.SumZakaza</MudTd>
+                        <MudTd>@context.SumProdaji</MudTd>
+                        <MudTd>@context.SumOplaty</MudTd>
+                        <MudTd>@context.SumVozvrat</MudTd>
+                        <MudTd>
+                <MudButton class="div_right_livt" @onclick="(()=>NavigatorPageItem(context.DocEntry))" Variant="Variant.Filled" Color="Color.Primary" value="@context.DocEntry" name="itemId">
+                                Товары
+                            </MudButton>
+
+                        </MudTd>
+                    </RowTemplate>      
+    </MudTable>
+    <div style="padding-top:20px">
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>GoToOkReport())" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" type="submit">Вернуться к отчету</MudButton>
+    </div>
+</body>
+
+@code {
+    private List<OkReportDetals> okReportDetails = new List<OkReportDetals>();
+    [Parameter]
+    public string fromDate { get; set; }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //if (DateTime.TryParse(fromDate, out DateTime date))
+        okReportDetails = await AccountingService.GetOkReportDetailsAsync(fromDate.Replace('-','.'));
+        await Task.CompletedTask;
+
+    }
+
+    private void NavigatorPageItem(int id)
+    {
+        navigationParams.SetPrevParams(new Dictionary<string, string>() { { "okreportdetails", fromDate } });
+        navigationmanager.NavigateTo($"orderItemPage?id={id}", false);
+    }
+    private void GoToOkReport()
+    {
+        Dictionary<string,string> param = navigationParams.GetPrevParams();
+        navigationmanager.NavigateTo($"okreport?from={param["from"]}&to={param["to"]}", false);
+    }
+}

@@ -1,0 +1,1 @@
+select distinct("U_RouteID") as "URouteID" from test.ocrd where "U_RouteID" like 'ROOT # 0% XX' or "U_RouteID" = 'MARKET' or "U_RouteID" = 'OFFICE';

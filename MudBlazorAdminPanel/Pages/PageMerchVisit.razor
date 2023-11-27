@@ -1,0 +1,51 @@
+﻿@page "/pageMerchVist/{id:int}"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+
+@inject NavigationManager Navigation
+@inject IOinvService OinvService
+
+<body class="body">
+ <h1 class="colorFont">Merch Visit Page</h1>
+    <MudTable Items="@ModelsProduct" Dense="false" Hover="true" Bordered="true" Striped="true" SortLabel="Sort By">
+      <thead class="model_table">
+        <MudTr>
+            <MudTh>Product group name</MudTh>
+            <MudTh>Product name</MudTh>
+            <MudTh>Comment</MudTh>
+            <MudTh>Status</MudTh>
+        </MudTr>
+        @if (ModelsProduct != null)
+        {
+            @foreach (var soldStat in ModelsProduct)
+            {
+                <MudTr>
+                    <MudTd>@soldStat.MerchProductGroup.GroupName</MudTd>
+                    <MudTd>@soldStat.MerchProduct.MerchProductName</MudTd>
+                    <MudTd>@soldStat.MerchProdyctComment</MudTd>
+                    <MudTd>@soldStat.SoldStatusCod</MudTd>
+                </MudTr>
+
+            }
+        }
+    </thead>
+</MudTable>
+</body>
+
+@code {
+    private List<MerchProductSoldStat> ModelsProduct;
+    [Parameter]
+    public int id { get; set; }
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        ModelsProduct = (await OinvService.GetMerchReport(id));
+    }
+
+
+}

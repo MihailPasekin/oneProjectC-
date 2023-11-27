@@ -1,0 +1,18 @@
+select 
+odln."DocEntry",
+odln."DocNum",
+odln."CardCode", 
+odln."DocDate", 
+odln."CardName", 
+odln."DocTotal", 
+odln."Comments", 
+odln."U_Agent", 
+odln."U_Supervisor",
+octg."PymntGroup",
+CONCAT(ohem."firstName",CONCAT(' ', ohem."lastName")) as "NameAgent" ,
+CONCAT(ohem1."firstName",CONCAT(' ', ohem1."lastName")) as "NameSupervisor" 
+from test.odln 
+inner join test.OCTG octg on odln."GroupNum" = octg."GroupNum"
+inner join test.OHEM ohem on odln."OwnerCode" = ohem."empID"
+inner join test.OHEM ohem1 on odln."U_Agent" = ohem1."empID"
+where odln."DocStatus" = 'O';

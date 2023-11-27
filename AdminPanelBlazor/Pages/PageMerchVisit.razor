@@ -1,0 +1,51 @@
+﻿@page "/pageMerchVist/{id:int}"
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+
+@inject NavigationManager Navigation
+@inject IOinvService OinvService
+
+<body class="body">
+ <h1 class="colorFont">Merch Visit Page</h1>
+    <table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+      <thead class="model_table">
+        <tr>
+            <th>Product group name</th>
+            <th>Product name</th>
+            <th>Comment</th>
+            <th>Status</th>
+        </tr>
+        @if (ModelsProduct != null)
+        {
+            @foreach (var soldStat in ModelsProduct)
+            {
+                <tr>
+                    <td>@soldStat.MerchProductGroup.GroupName</td>
+                    <td>@soldStat.MerchProduct.MerchProductName</td>
+                    <td>@soldStat.MerchProdyctComment</td>
+                    <td>@soldStat.SoldStatusCod</td>
+                </tr>
+
+            }
+        }
+    </thead>
+</table>
+</body>
+
+@code {
+    private List<MerchProductSoldStat> ModelsProduct;
+    [Parameter]
+    public int id { get; set; }
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        ModelsProduct = (await OinvService.GetMerchReport(id));
+    }
+
+
+}

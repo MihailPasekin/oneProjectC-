@@ -1,0 +1,159 @@
+﻿@page "/kassa"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.SapObjects
+
+@inject  IOinvService iOinvService
+<body class="body">
+<PageTitle>Invoices page</PageTitle>
+
+<EditForm Model="@empId" OnSubmit="@HandleSubmit">
+        <div style="padding:10px"></div>
+    <MudInput T="string" @bind-Value="empId" />
+
+        <MudButton class="input_color" Variant="Variant.Filled" Color="Color.Primary" type="submit">Submit</MudButton>
+</EditForm>
+    <div style="padding:10px"></div>
+    <h2 class="colorFontWhite">@employeRoots</h2>
+    <h2 class="colorFontWhite">@employeName</h2>
+@if (Oinvs == null)
+{
+        <h4 class="colorFont">Loading...</h4>
+}
+else
+{       <form class="colorFontWhite" >
+            <MudTable Items="@empId" Dense="false" Hover="true" Bordered="true" Striped="true">
+                <HeaderContent>
+         
+                <MudTh>DocEntry</MudTh>
+                <MudTh>CardCode</MudTh>
+                <MudTh>CardName</MudTh>
+                <MudTh>PayType</MudTh>
+                <MudTh>DocDate</MudTh>
+                <MudTh>DocTotal</MudTh>
+                <MudTh>PaySum</MudTh>
+                <MudTh>Confirm</MudTh>
+            
+             </HeaderContent>
+             <RowTemplate>
+            @if (Oinvs != null)
+            {
+                @foreach (var invoice in Oinvs.ListOinvs)
+                {
+                    
+                        <MudTd>@invoice.DocEntry</MudTd>
+                        <MudTd>@invoice.CardCode</MudTd>
+                        <MudTd>@invoice.CardName</MudTd>
+                        <MudTd>
+                            @switch (invoice.GroupNum)
+                            {
+                                case -1:
+                                    <text>"Наличные"</text>
+                                    ;
+                                    break;
+                                case 1:
+                                    <text>"При отгрузке"</text>
+                                    ;
+                                    break;
+                                case 2:
+                                    <text>"Кредит 7"</text>
+                                    ;
+                                    break;
+                                case 3:
+                                    <text>"Кредит 14"</text>
+                                    ;
+                                    break;
+                                case 4:
+                                    <text>"Кредит 30"</text>
+                                    ;
+                                    break;
+                                case 5:
+                                    <text>"Перечисление"</text>
+                                    ;
+                                    break;
+                                case 6:
+                                    <text>"Консигнация"</text>
+                                    ;
+                                    break;
+                                case 7:
+                                    <text>"Реализация"</text>
+                                    ;
+                                    break;
+                            }
+                        </MudTd>
+                        <MudTd>@invoice.DocDate.ToShortDateString()</MudTd>
+                        <MudTd>@invoice.DocTotal </MudTd>
+                        <MudTd>
+                            <InputNumber @bind-Value="@invoice.PaySum" class="input"></InputNumber>
+                        </MudTd>
+                        <MudTd>
+                             <InputCheckbox @bind-Value="@invoice.Confirm" class="cheked_color "></InputCheckbox>
+                        </MudTd>
+                    
+                }
+            }
+        </RowTemplate>
+    </MudTable>
+    </form>
+    <div style="float:right">
+            <div style="padding-top:10px "></div>
+            <h4 class="colorFont" style="font-size:24px; ">Итого: @Oinvs.TotalSumm</h4>
+            <div style="padding-top:20px "></div>
+            <EditForm Model="@Oinvs" OnSubmit="@PaymantSubmit">
+                <MudButton class=" input_color2 " Variant="Variant.Outlined" Color="Color.Primary" style="font-size:24px" type="submit">Отправить</MudButton>
+            </EditForm>
+    </div>
+       
+
+}
+</body>
+@code {
+    private string empId = "885";
+    private ListOINV Oinvs;
+    private float totalsum = 0;
+    private string employeRoots = "";
+    private string employeName = "";
+    private string btText = ">>";
+
+    protected override async Task OnInitializedAsync()
+    {
+       // Oinvs = (await iOinvService.GetInvoices());
+       // employeName = (await iOinvService.GetEmployeName(empId));
+        //employeRoots = (await iOinvService.GetEmployeRoot(empId));
+        //SummCheckedInvoice();
+    }
+
+    private async Task HandleSubmit()
+    {
+
+        Oinvs = (await iOinvService.GetInvoices(empId));
+        employeName = (await iOinvService.GetEmployeName(empId));
+        employeRoots = (await iOinvService.GetEmployeRoot(empId));
+        //SummCheckedInvoice();
+        await Task.CompletedTask;
+    }
+    private async Task PaymantSubmit()
+    {
+        var list = Oinvs.ListOinvs.Where(p => p.Confirm == true).ToList<OINV>();
+        await iOinvService.PostCreatePay(list);
+        Oinvs = await iOinvService.GetInvoices(empId);
+        await Task.CompletedTask;
+    }
+
+    private async Task SetPaySum(OINV oinv)
+    {
+        if (oinv.PaySum == 0)
+        {
+            oinv.PaySum = oinv.DocTotal;
+        }
+        else
+        {
+            oinv.PaySum = 0;
+            oinv.Confirm = false;
+        }
+
+        await Task.CompletedTask;
+    }
+}

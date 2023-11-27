@@ -1,0 +1,119 @@
+﻿@page "/ReportMerchPlan"
+
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@inject IOinvService OinvService
+
+<body class="body">
+    <div class="col-12">
+        <label for="exampleInputComment" >Найти сотрудника</label>
+        <div style="padding-top:5px;"></div>
+        <MudInput T="string" @onchange="FilterTextChangedEmpoe" class="form-control" type="text" Placeholder="Поиск"></MudInput>
+
+        <div style="padding-top:20px;"></div>
+
+        <label for="exampleInputComment" >Выбрать сотрудника</label>
+        <EditForm Model="@merchPlanDitail">
+             <MudSelect  @bind-Value="@employeName"  Label="Выбрать...">
+                <option value=""></option>
+                   @foreach (var emploe in EmploeAll)
+                    {
+                    <MudSelectItem Value="@emploe.SapEmployeId">@emploe.EmployeSecondName @emploe.EmployeName</MudSelectItem>
+                     }
+               </MudSelect>
+            <div style="padding-top:20px;"></div>
+            <MudButton class="input_color" type="submit" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Person">Добавить заказщика</MudButton>
+        </EditForm>
+    </div>
+
+    <div style="padding-top:20px;"></div>
+
+    <MudTable Items="@PlanReportAll" Dense="false" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>
+       
+                <MudTh>EmpId</MudTh>
+                <MudTh>PlanDetailId</MudTh>
+                <MudTh>CreatedAt</MudTh>
+           
+         </HeaderContent>
+         <RowTemplate>
+            @if (PlanReportAll != null)
+            {
+                @foreach (var merchplan in PlanReportAll)
+                {
+                    <MudTr @onclick="()=>{
+                        merchPlan.PlanId = merchplan.PlanId; photos = merchplan.Photos;
+                    }">
+                        <MudTd>@merchplan.Employe.EmployeHistory.First().Name @merchplan.Employe.EmployeHistory.First().SecondName</MudTd>
+                        <MudTd>@merchplan.MerchPlan.PlanDate</MudTd>
+                        <MudTd>@merchplan.PlanDetail.CardName</MudTd>
+                    </MudTr>
+                }
+            }
+        </RowTemplate>
+    </MudTable>
+  
+    
+   
+    @if (photos.Count > 0)
+    {
+        @foreach (var photo in photos)
+        {
+            <div class="card mb-3" style="max-width: 540px;">
+                <div class="row">
+                    <div class="col-md-8">
+                        <img src="/UploadedFiles/@photo.FullFileName.Split('\\').Last()" class="img-fluid rounded-start" alt="...">
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Card title</h5>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    
+        
+</body>
+
+@code {
+    private PlanDetail merchPlanDitail = new PlanDetail();
+    private MerchPlan merchPlan = new MerchPlan();
+    private List<Photo> photos = new List<Photo>();
+    private List<EmployeView> EmploeFiltered = new List<EmployeView>();
+    private List<EmployeView> EmploeAll = new List<EmployeView>();
+    private List<PlanReport> PlanReportAll = new List<PlanReport>();
+    private string emploeFilterVal = "";
+    private string employeName = "";
+    private List<MerchPlan> Oinvs;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Oinvs = await OinvService.MerchPlansAll();
+        PlanReportAll = await OinvService.GetAllPlanReportAsync();
+        EmploeAll = await OinvService.GetAllEmployesAsync();
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+
+    }
+
+    public void FilterTextChangedEmpoe(ChangeEventArgs eventArgs)
+    {
+        emploeFilterVal = eventArgs.Value.ToString();
+
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+    }
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        merchPlan.EmpId = int.Parse(eventArgs.Value.ToString());
+        employeName = EmploeAll.Where(p => p.SapEmployeId == merchPlan.EmpId).Select(p => new { name = $"{p.EmployeName} {p.EmployeSecondName}" }).First().name;
+    }
+}

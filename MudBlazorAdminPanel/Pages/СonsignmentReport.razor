@@ -1,0 +1,298 @@
+﻿    @page "/consignmentreport"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccounting AccountingService
+
+<body class="body ,colorFont">
+    <div style="padding-top:20px;"></div>
+<h4>СonsignmentReport</h4>
+    <div style="padding-top:20px;"></div>
+
+    <label for="exampleInputComment">Найти клиента</label>
+    <div style="padding-top:5px;"></div>
+    <MudInput T="string" @onchange="FilterTextChangedEmpoe" class="form-control" type="text" Placeholder="Поиск"></MudInput>
+
+    <div style="padding-top:20px;"></div>
+    <label for="exampleInputComment">Выбрать сотрудника</label>
+
+    <MudSelect T="string" @bind-value="clientFilterVal" Label="Выбрать..">
+        <option value=""></option>
+        @foreach (var emploe in listClientFiltered)
+        {
+            <MudSelectItem Value="@emploe.CardCode">@emploe.CardCode @emploe.CardName</MudSelectItem>
+        }
+    </MudSelect>
+
+    <div class="row" style="padding-top:30px">      
+        <div class='col-sm-2'>
+            <table class="col_table">
+                <tr>
+                    <td>
+                        <MudDatePicker @bind-Date="FromDate" Label="С даты"></MudDatePicker>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        </div>
+
+    <div class="row">
+        <div class='col-sm-2'>
+            <table class="col_table">
+                <tr>
+                    <td>
+                        <MudDatePicker @bind-Date="ToDate" Label="По дату"></MudDatePicker>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div style="padding:10px"></div>
+    <div>
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>OnInitializedAsync())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.AddCircle" type="submit">Показать отчет</MudButton>
+    </div>
+    <div style="padding:30px"></div>
+    <MudTable Items="@consignmentList" Dense="false" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>          
+                <MudTh>ID пос-ния</MudTh>
+                <MudTh>Номер пос-ния</MudTh>
+                <MudTh>Дата пос-ния</MudTh>
+                <MudTh>Код товара</MudTh>
+                <MudTh>Наименование товара</MudTh>
+                <MudTh>Количество в начале</MudTh>
+                <MudTh>Период поступления</MudTh>
+                <MudTh>Период возврата</MudTh>
+                <MudTh>Количество в конце</MudTh>
+                <MudTh>Продано</MudTh>
+                <MudTh>Рек. цена</MudTh>
+                <MudTh>Комиссионное вознаграждение</MudTh>
+                <MudTh>Выплата комитенту</MudTh>
+                <MudTh>Цена пост-ния</MudTh>
+                <MudTh>Начальная сумма (Прибытие Цены)</MudTh>
+                <MudTh>Сумма на начало (рек. цена)</MudTh>
+                <MudTh>Сумма пост-ния (приходная цена)</MudTh>
+                <MudTh>Сумма пост-ния (рек. цена)</MudTh>
+                <MudTh>Сумма на конец (приходная цена)</MudTh>
+                <MudTh>Сумма на конец (цена продажи)</MudTh>           
+        </HeaderContent>
+        <RowTemplate>          
+                <MudTd>@context.IdReceipts</MudTd>
+                <MudTd>@context.ReceiptNumber</MudTd>
+                <MudTd>@context.ReceiptDate.ToString("dd.MM.yyyy")</MudTd>
+                <MudTd>@context.ProductCode</MudTd>
+                <MudTd>@context.ProductName</MudTd>
+                <MudTd>@context.QuantityAtStart</MudTd>
+                <MudTd>@context.ReceiptsPeriod</MudTd>
+                <MudTd>@context.ReturnsPeriod</MudTd>
+                <MudTd>@context.QuantityAtEnd</MudTd>
+                <MudTd>@context.Sales</MudTd>
+                <MudTd>@context.RecPrice</MudTd>
+                <MudTd>@context.CommissionRemuneration</MudTd>
+                <MudTd>@context.PaymentPrincipal</MudTd>
+                <MudTd>@context.AdmissionPrice</MudTd>
+                <MudTd>@context.StartingAmountArrivalPrice</MudTd>
+                <MudTd>@context.StartingAmountPriceDetails</MudTd>
+                <MudTd>@context.ReceiptAmountArrivalPrice</MudTd>
+                <MudTd>@context.ReceiptAmountRecommendedPrice</MudTd>
+                <MudTd>@context.AmountEndEntryPrice</MudTd>
+                <MudTd>@context.AmountEndSellingPrice</MudTd>           
+        </RowTemplate>
+
+        <PagerContent>
+        <MudTr>
+                <MudTd></MudTd>
+                <MudTd></MudTd>
+                <MudTd></MudTd>
+                <MudTd></MudTd>
+                <MudTd style="float:right">Итого:</MudTd>
+                <MudTd>@sumQuantityAtStart</MudTd>
+                <MudTd>@sumReceiptsPeriod</MudTd>
+                <MudTd>@sumReturnsPeriod</MudTd>
+                <MudTd>@sumQuantityAtEnd</MudTd>
+                <MudTd>@sumSales</MudTd>
+                <MudTd>@sumRecPrice</MudTd>
+                <MudTd>@sumCommissionRemuneration</MudTd>
+                <MudTd>@sumPaymentPrincipal</MudTd>
+                <MudTd>@sumAdmissionPrice</MudTd>
+                <MudTd>@sumStartingAmountArrivalPrice</MudTd>
+                <MudTd>@sumStartingAmountPriceDetails</MudTd>
+                <MudTd>@sumReceiptAmountArrivalPrice</MudTd>
+                <MudTd>@sumReceiptAmountRecommendedPrice</MudTd>
+                <MudTd>@sumAmountEndEntryPrice</MudTd>
+                <MudTd>@sumAmountEndSellingPrice</MudTd>
+            </MudTr>
+        </PagerContent>
+        
+    </MudTable>
+
+    <div style="padding: 20px 20px;"></div>
+
+    <MudStack Row="true">
+        <MudPaper Class="pa-3">
+            <h3 class="colorFontsizeform">
+                Сумма задолженности по оплате:
+            </h3>
+        </MudPaper>
+
+        <MudPaper Class="pa-3">
+            <span class="colorFontsizeform">@sumSumCreditTime</span>
+        </MudPaper>
+    </MudStack>
+
+    <div style="padding:10px"></div>
+
+    <MudStack Row="true">
+        <MudPaper Class="pa-3">
+            <h3 class="colorFontsizeform">Сумма реализации ТОВАРОВ КОМИТЕНТА за отчетный период составила </h3>
+        </MudPaper>
+
+        <MudPaper Class="pa-3">
+            <span class="colorFontsizeform">@sumSumrealizacion</span>
+        </MudPaper>
+    </MudStack>
+
+    <div style="padding:10px"></div>
+
+    <MudStack Row="true">
+        <MudPaper Class="pa-3">
+            <h3 class="colorFontsizeform">Сумма вознаграждения КОМИССИОНЕРА:</h3>
+        </MudPaper>
+
+        <MudPaper Class="pa-3">
+            <span class="colorFontsizeform">@sumCommissionRemuneration</span>
+        </MudPaper>
+    </MudStack>
+
+    <div style="padding:10px"></div>
+
+    <MudStack Row="true">
+        <MudPaper Class="pa-3">
+            <h3 class="colorFontsizeform">Сумма причитающаяся КОМИТЕНТУ за вычетом вознаграждения КОМИССИОНЕРА:</h3>
+        </MudPaper>
+
+        <MudPaper Class="pa-3">
+            <span class="colorFontsizeform">@sumPaymentPrincipal</span>
+        </MudPaper>
+    </MudStack>
+
+    <div style="padding:10px"></div>
+
+    <MudStack Row="true">
+        <MudPaper Class="pa-3">
+            <h3 class="colorFontsizeform">
+                Сумма выплаты КОМИТЕНТУ  за отчётный период:
+            </h3>
+        </MudPaper>
+
+        <MudPaper Class="pa-3">
+            <span class="colorFontsizeform">@sumSumVplatCommisioner</span>
+        </MudPaper>
+    </MudStack>
+
+    <div style="padding:10px"></div>
+
+    <MudStack Row="true">
+        <MudPaper Class="pa-3">
+            <h3 class="colorFontsizeform">
+                Сумма задолженности по оплате:
+            </h3>
+        </MudPaper>
+
+        <MudPaper Class="pa-3">
+            <span class="colorFontsizeform">@sumSumCreditOplat</span>
+        </MudPaper>
+    </MudStack>
+    <div style="padding: 30px 30px;"></div>
+
+    <MudButton class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Download">Скачать Excel</MudButton>
+</body>
+@code {
+    private List<Сonsignment> consignmentList = new List<Сonsignment>();
+    private DateTime? fromDate = DateTime.Now.Date;
+    private DateTime? toDate = DateTime.Now.Date;
+    private string clientFilterVal = " "; //11498V
+    private List<ConsigmentClient> listClient = new List<ConsigmentClient>();
+    private List<ConsigmentClient> listClientFiltered = new List<ConsigmentClient>();
+    private string clientName = "11498V";
+    private int sumQuantityAtStart { get { return consignmentList.Sum(p => p.QuantityAtStart); } }
+    private int sumReceiptsPeriod { get { return consignmentList.Sum(p => p.ReceiptsPeriod); } }
+    private int sumReturnsPeriod { get { return consignmentList.Sum(p => p.ReturnsPeriod); } }
+    private int sumQuantityAtEnd { get { return consignmentList.Sum(p => p.QuantityAtEnd); } }
+    private int sumSales { get { return consignmentList.Sum(p => p.Sales); } }
+    private double sumRecPrice { get { return consignmentList.Sum(p => p.RecPrice); } }
+    private double sumCommissionRemuneration { get { return consignmentList.Sum(p => p.CommissionRemuneration); } }
+    private double sumPaymentPrincipal { get { return consignmentList.Sum(p => p.PaymentPrincipal); } }
+    private double sumAdmissionPrice { get { return consignmentList.Sum(p => p.AdmissionPrice); } }
+    private double sumStartingAmountArrivalPrice { get { return consignmentList.Sum(p => p.StartingAmountArrivalPrice); } }
+    private double sumStartingAmountPriceDetails { get { return consignmentList.Sum(p => p.StartingAmountPriceDetails); } }
+    private double sumReceiptAmountArrivalPrice { get { return consignmentList.Sum(p => p.ReceiptAmountArrivalPrice); } }
+    private double sumReceiptAmountRecommendedPrice { get { return consignmentList.Sum(p => p.ReceiptAmountRecommendedPrice); } }
+    private double sumAmountEndEntryPrice { get { return consignmentList.Sum(p => p.AmountEndEntryPrice); } }
+    private double sumAmountEndSellingPrice { get { return consignmentList.Sum(p => p.AmountEndSellingPrice); } }
+    private int sumSumCreditTime = 0;
+    private double sumSumrealizacion = 0;
+    private int sumSumVplatCommisioner = 0;
+    private double sumSumCreditOplat = 0;
+
+    private DateTime? FromDate { get { return fromDate; } set { fromDate = value; } }
+    private DateTime? ToDate { get { return toDate; } set { toDate = value; } }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? To { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd"); 
+        consignmentList = await AccountingService.GetСonsignmentAsync(From.Replace("_", "."), To.Replace("_", "."), "11498V");
+        listClient = await AccountingService.GetConsigmentClientsAsync();
+        await Task.CompletedTask;
+    }
+
+    public async Task GetReport()
+    {
+        From = From ?? FromDate.Value.Date.ToString("yyyy_MM_dd");
+        To = To ?? ToDate.Value.Date.ToString("yyyy_MM_dd");
+        consignmentList = await AccountingService.GetСonsignmentAsync(From.Replace("_", "."), To.Replace("_", "."), clientName);
+        sumSumrealizacion = sumCommissionRemuneration + sumPaymentPrincipal;
+        sumSumCreditOplat = sumSumCreditTime + sumCommissionRemuneration - sumSumVplatCommisioner;
+        await Task.CompletedTask;
+    }
+
+    public async Task FilterTextChangedEmpoe(ChangeEventArgs eventArgs)
+    {
+        clientFilterVal = eventArgs.Value.ToString();
+        for (int i = 0; i < listClient.Count; i++)
+        {
+            if (listClient[i].CardName.Contains(clientFilterVal))
+            {
+                listClientFiltered.Add(listClient[i]);
+            }
+        }
+
+        await Task.CompletedTask;
+    }
+    protected async void CreateDocument()
+    {
+
+        await excelService.GenerateWeatherСonsignmentAsync(FromDate.Value, ToDate.Value, JS, consignmentList, "export.xlsx");
+        await Task.CompletedTask;
+    }
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        clientName = eventArgs.Value.ToString();
+
+    }
+}

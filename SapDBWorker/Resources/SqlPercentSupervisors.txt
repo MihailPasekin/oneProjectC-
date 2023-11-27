@@ -1,0 +1,12 @@
+SELECT 
+'supervisor'as "jopTitle", '0' as "code", ocrd."U_RouteID" as "Name",  SUM(orct."DocTotal") as "sum", SUM(orct."DocTotal" * (select pr."U_Percentage" from "@BMM_OHTY_EXT" pr where pr."Code" = 2) * 0.01) AS "commission"
+FROM OINV S8
+left JOIN rct2 rct ON S8."DocEntry" = rct."DocEntry"
+left JOIN Orct orct ON rct."DocNum" = orct."DocEntry"
+left JOIN OCRD ocrd on S8."CardCode" = ocrd."CardCode"
+WHERE 
+orct."DocDate" BETWEEN FROMDATE AND TODATE
+AND S8."CANCELED" = 'N'
+and orct."Canceled" = 'N'
+and ocrd."U_RouteID" != 'OFFICE'
+GROUP BY ocrd."U_RouteID"

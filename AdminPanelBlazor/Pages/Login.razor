@@ -1,0 +1,92 @@
+﻿@page "/login"
+
+@using AdminPanelBlazor.Interfaces;
+@using AdminPanelBlazor.Services;
+@using EComersObjectLib.Objects;
+@using System.Security.Claims;
+
+@inject AuthenticationService AuthenticationService
+@inject NavigationManager navigationmanager
+@inject IAccounting AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<body class="body ,colorFont">
+    <AuthorizeView>
+        <Authorized>
+            <a href="/">Hello, @context.User.Identity?.Name!</a>
+        </Authorized>
+        <NotAuthorized>
+            <div class="row" style="padding-top:30px">
+                <div class='col-sm-2'>
+                    <h3 class="colorFont">Логин</h3>
+                </div>
+
+                <div class='col-sm-2'>
+                    <InputText @bind-Value="login"></InputText>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class='col-sm-2'>
+                    <h3 class="colorFont">Пароль</h3>
+                </div>
+
+                <div class='col-sm-2'>
+                    <input @bind="password"></input>
+                </div>
+            </div>
+            <div>
+                <button class="btn-lg btn-primary, input_color2" @onclick="(()=>TryAutenticate())">Авторизоваться</button>
+            </div>
+            <div style="padding:30px"></div>
+
+        </NotAuthorized>
+    </AuthorizeView>
+
+    <p>@surname</p>
+</body>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    private List<OkReportLines> okReport = new List<OkReportLines>();
+    private string login { get; set; } 
+    private string password { get; set; } 
+    private string? authMessage;
+    private string? surname;
+    private IEnumerable<Claim> claims = Enumerable.Empty<Claim>();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await Task.CompletedTask;
+
+    }
+    private async void TryAutenticate()
+    {
+        AuthenticationService.TryAuthenticateUserAsync(login, password);
+
+        await Task.CompletedTask;
+    }
+
+    private async Task GetClaimsPrincipalData()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            authMessage = $"{user.Identity.Name} is authenticated.";
+            claims = user.Claims;
+            surname = user.FindFirst(c => c.Type == ClaimTypes.Surname)?.Value;
+        }
+        else
+        {
+            authMessage = "The user is NOT authenticated.";
+        }
+    }
+}

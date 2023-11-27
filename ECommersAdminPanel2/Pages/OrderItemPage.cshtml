@@ -1,0 +1,44 @@
+﻿@page "{id}"
+@model ECommersAdminPanel2.Pages.OrderItemPageModel
+@{
+    ViewData["Title"] = "OrderItem page";
+}
+
+<form method="post" >
+    <table border=2 bordercolor="#000000" cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+        <thead>
+            <tr>
+                <th>DocEntry</th>
+                <th>LineNum</th>
+                <th>ItemCode</th>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>LineTotal</th>
+                <th>WhsCode</th>
+            </tr>
+            @if (Model.ListRdr != null)
+            {
+                if (Model.ListRdr.Count > 0)
+                {
+                    @foreach (var rdr in Model.ListRdr)
+                    {
+                        <tr>
+                            <td>@rdr.DocEntry</td>
+                            <td>@rdr.LineNum</td>
+                            <td>@rdr.ItemCode</td>
+                            <td>@rdr.Description</td>
+                            <td>@rdr.Quantity</td>
+                            <td>@rdr.Price</td>
+                            <td>@rdr.LineTotal</td>
+                            <td>@rdr.WhsCode</td>
+                        </tr>
+                    }
+                }
+            }
+        </thead>
+    </table>
+    <div>
+        <button class="div_right_livt" value="Send">Отправить данные</button>
+    </div>
+</form>

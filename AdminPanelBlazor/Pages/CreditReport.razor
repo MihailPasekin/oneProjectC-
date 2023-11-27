@@ -1,0 +1,177 @@
+﻿@page "/creditReport"
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using System.IO;
+@using System.Security.Claims
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject IAccounting AccountingService
+@inject IOinvService iOinvService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+<body class="body ,colorFont">
+    
+    
+
+    <div class="row">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">Выбор даты</h3>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="toDate"></InputDate>
+        </div>
+    </div>
+    <div class="row">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">Территория</h3>
+        </div>
+
+        <div class='col-sm-2'>
+            <select class="form-control" @bind="@selectedRoute">
+
+                <option value=""></option>
+                @foreach (var uRoute in uRouteID)
+                {
+                    <option value="@uRoute.RouteId"> @uRoute.RouteId </option>
+                }
+                }
+
+            </select>
+        </div>
+    </div>
+    <div>
+        <button class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetCreditReport())" type="submit">Показать отчет</button>
+    </div>
+    <div style="padding:30px"></div>
+    <table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+        <thead class="model_table">
+            <tr>
+                <th>Рут</th>
+                <th>Агент</th>
+                <th>Номер документа</th>
+                <th>Дата Доставки</th>
+                <th>Клиент</th>
+                <th>Сумма заказа</th>
+                <th>Консигнация</th>
+                <th>Перечисление</th>
+                <th>Кредит 7 дней</th>
+                <th>Кредит 14 дней</th>
+                <th>Кредит 30 дней</th>
+                <th>Осталось дней</th>
+                <th>Просрочено дней</th>
+                <th>Сумма кредита</th>
+                <th>Остаток</th>
+                <th>Сумма оплаты</th>
+                <th>Сумма возрата</th>
+                
+            </tr>
+            @if (creditReport != null)
+            {
+                @foreach (var creditreports in creditReport)
+                {
+                    
+                    <tr>
+                        <td>@creditreports.Route</td>
+                        <td>@creditreports.Agent</td>
+                        <td>@creditreports.DocNum</td>
+                        <td>@creditreports.DeliveriDate.ToString("dd.MM.yyyy")</td>
+                        <td>@creditreports.Client</td>
+                        <td>@creditreports.OrderSum</td>
+                        <td>@creditreports.ConsignmentTotal</td>
+                        <td>@creditreports.Transfer</td>
+                        <td>@creditreports.Credit7</td>
+                        <td>@creditreports.Credit14</td>
+                        <td>@creditreports.Credit30</td>
+                        <td>@creditreports.Ostalos</td>
+                        <td>@creditreports.Expired</td>
+                        <td>@creditreports.CreditSum</td>
+                        <td>@creditreports.Balance</td>
+                        <td>@creditreports.SumOplaty</td>
+                        <td>@creditreports.SumVozvrat</td>
+                    </tr>
+                    
+                }
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td style="float:right">Итого:</td>
+                    <td>@sumOrderSum</td>
+                    <td>@sumConsignmentTotal</td>
+                    <td>@SumTransfer</td>
+                    <td>@sumCredit7</td>
+                    <td>@sumCredit14</td>
+                    <td>@sumCredit30</td>
+                    <td></td>
+                    <td></td>
+                    <td>@sumCreditSum</td>
+                    <td>@sumBalance</td>
+                    <td>@sumSumOplaty</td>
+                    <td>@sumSumVozvrat</td>
+                </tr>
+                
+            }
+        </thead>
+    </table>
+    <div style="padding:10px">
+    </div>
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>
+
+</body>
+
+@code {
+    private string selectedRoute = "ROOT # 03 AG";
+    private List<CreditReportLines> creditReport = new List<CreditReportLines>();
+    private List<URouteID> uRouteID { get; set; } = new List<URouteID>();
+    private DateTime fromDate { get; set; } = DateTime.Now.Date;
+    private DateTime toDate { get; set; } = DateTime.Now.Date;
+    private double sumConsignmentTotal { get { return Math.Round(creditReport.Sum(p => p.ConsignmentTotal), 2); } }
+    private double SumTransfer { get { return Math.Round(creditReport.Sum(p => p.Transfer), 2); } }
+    private double sumCredit7 { get { return Math.Round(creditReport.Sum(p => p.Credit7), 2); } }
+    private double sumCredit14 { get { return Math.Round(creditReport.Sum(p => p.Credit14),2); } }
+    private double sumCredit30 { get { return  Math.Round(creditReport.Sum(p => p.Credit30),2); } }
+    private double sumCreditSum { get { return Math.Round(creditReport.Sum(p => p.CreditSum),2); } }
+    private double sumBalance { get { return  Math.Round(creditReport.Sum(p => p.Balance),2); } }
+    private double sumSumOplaty { get { return Math.Round(creditReport.Sum(p => p.SumOplaty), 2); } }
+    private double sumSumVozvrat { get { return Math.Round(creditReport.Sum(p => p.SumVozvrat), 2); } }
+    private double sumOrderSum { get { return Math.Round(creditReport.Sum(p => p.OrderSum), 2); } }
+    private IEnumerable<Claim> claims = Enumerable.Empty<Claim>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is not null && user.Identity.IsAuthenticated)
+        {
+            claims = user.Claims;
+            string region = claims.Where(p => p.Type == "Region").First().Value;
+
+            uRouteID = await AccountingService.GetURouteIDAsync(region);
+        }
+         
+        //creditReport = await AccountingService.GetCerditReportListAsync(fromDate.Date.ToString("yyyy.MM.dd"), toDate.Date.ToString("yyyy.MM.dd"), selectedRoute.Replace(" ", "%20").Replace("#", "%23"));
+        await Task.CompletedTask;
+    }
+
+    private async Task GetCreditReport()
+    {
+        creditReport = await AccountingService.GetCerditReportListAsync(fromDate.Date.ToString("yyyy.MM.dd"), toDate.Date.ToString("yyyy.MM.dd"), selectedRoute.Replace(" ", "%20").Replace("#", "%23"));
+        await Task.CompletedTask;
+    }
+    protected async void CreateDocument()
+    {
+
+        await excelService.GenerateWeatherCreditReportAsync(fromDate, toDate,JS, creditReport, "export.xlsx");
+    }
+}

@@ -1,0 +1,468 @@
+select 
+	t0."ItemCode",
+	t0."ItemName",
+	sum(t0."OnHand"),
+	t0."PriceBuy",
+	t0."PriceSale",
+	sum	(t0."pdnQuantity") as  "GoodsReceipt",--"Поступление",
+	sum (t0."invQuantity" - t0."rdnQuantity") as "ProductsSold",--"Реализовано",
+	sum (t0."rpdQuantity") as "ReturnSupplier", --"Возврат поставщику",
+	sum (((t0."PriceSale" - t0."PriceBuy") * (t0."invQuantity" - t0."rdnQuantity" ))) as "CommissionAgentRemunAmount", --"Сумма возграждения комиссионера",
+	sum ((t0."PriceBuy" * (t0."invQuantity" - t0."rdnQuantity"))) as "AmountPaymentPrincipal",--"Сумма выплаты комитенту",
+	sum ((t0."resultBefore" * t0."PriceBuy")) as "ReceiptAmountStartPeriod",--"Сумма на начало периода приходная",
+	sum ((t0."resultBefore" * t0."PriceSale")) as "AmountStartPeriod", --"Сумма на начало периода реком",
+	sum (((t0."resultBefore" + t0."resultBetween")* t0."PriceBuy")) as "ReceiptAmountEndPeriod",--"Сумма на конец периода приходная",
+	sum (((t0."resultBefore" + t0."resultBetween")* t0."PriceSale")) as "AmountEndPeriodRecom"--"Сумма на конец периода реком"
+from
+(select 
+	oitw."WhsCode",
+	oitm."ItemCode",
+	oitm."ItemName" ,
+	ifnull(oitw."OnHand",0) as "OnHand",
+	pcBuy."PriceBuy" ,
+	pcSale."PriceSale" ,
+	ifnull(dln."dlnQuantity",0) as "dlnQuantity",
+	ifnull(rdn."rdnQuantity",0) as "rdnQuantity",
+	ifnull(rin."rinQuantity",0) as "rinQuantity",
+	ifnull(wtr."wtrQuantityFiller",0) as "wtrQuantityFiller",
+	ifnull(wtrto."wtrQuantityTo",0) as "wtrQuantityTo",
+	ifnull(ige."igeQuantity",0) as "igeQuantity",
+	ifnull(ign."ignQuantity",0) as "ignQuantity",
+	ifnull(pch."pchQuantity",0) as "pchQuantity",
+	ifnull(pdn."pdnQuantity",0) as "pdnQuantity",
+	ifnull(inv."invQuantity",0) as "invQuantity",
+	ifnull(iqr."iqrQuantity",0) as "iqrQuantity",
+	ifnull(rpd."rpdQuantity",0) as "rpdQuantity",
+	ifnull(invdln."invDlnQuantity",0) as "invDlnQuantity",
+		ifnull(iqr."iqrQuantity",0)
+		+ifnull(rin."rinQuantity",0)
+		-ifnull(inv."invQuantity",0)
+		-ifnull(dln."dlnQuantity",0)
+		+ifnull(rdn."rdnQuantity",0)
+		-ifnull(wtr."wtrQuantityFiller",0)
+		+ifnull(wtrto."wtrQuantityTo",0)
+		-ifnull(ige."igeQuantity",0)
+		+ifnull(ign."ignQuantity",0) 
+		+ifnull(invdln."invDlnQuantity",0)
+		as "resultBetween",
+	ifnull(dlnb."dlnQuantityBf",0) as "dlnQuantityBf",
+	ifnull(rdnb."rdnQuantityBf",0) as "rdnQuantityBf",
+	ifnull(rinb."rinQuantityBf",0) as "rinQuantityBf",
+	ifnull(wtrb."wtrQuantityFillerBf",0) as "wtrQuantityFillerBf",
+	ifnull(wtrtob."wtrQuantityToBf",0) as "wtrQuantityToBf",
+	ifnull(igeb."igeQuantityBf",0) as "igeQuantityBf",
+	ifnull(ignb."ignQuantityBf",0) as "ignQuantityBf",
+	ifnull(pchb."pchQuantityBf",0) as "pchQuantityBf",
+	ifnull(pdnb."pdnQuantityBf",0) as "pdnQuantityBf",
+	ifnull(invb."invQuantityBf",0) as "invQuantityBf",
+	ifnull(invdlnb."invDlnQuantityBf",0) as "invDlnQuantityBf",
+	ifnull(iqrb."iqrQuantityBf",0) as "iqrQuantityBf",
+	ifnull(rpdb."rpdQuantityBf",0) as "rpdQuantityBf",
+		ifnull(iqrb."iqrQuantityBf",0)
+		+ifnull(rinb."rinQuantityBf",0)
+		-ifnull(invb."invQuantityBf",0)
+		-ifnull(dlnb."dlnQuantityBf",0)
+		+ifnull(rdnb."rdnQuantityBf",0)
+		-ifnull(wtrb."wtrQuantityFillerBf",0)
+		+ifnull(wtrtob."wtrQuantityToBf",0)
+		-ifnull(igeb."igeQuantityBf",0)
+		+ifnull(ignb."ignQuantityBf",0) 
+		+ifnull(invdlnb."invDlnQuantityBf",0)
+		as "resultBefore"
+from 
+	test.OITW oitw
+	inner join test.OITM oitm on oitw."ItemCode" = oitm."ItemCode"
+-----------
+	inner join (select 
+			itm."ItemCode",
+			itm."Price" as "PriceBuy"
+		from 
+			test.ITM1 itm
+		where itm."PriceList" = 1) pcBuy on oitm."ItemCode" = pcBuy."ItemCode"
+	inner join (select 
+			itm."ItemCode",
+			itm."Price" as "PriceSale"
+		from 
+			test.ITM1 itm
+		where itm."PriceList" = 2) pcSale on oitm."ItemCode" = pcSale."ItemCode"
+------------
+---	between date
+	left join (select 
+		rpd."WhsCode",
+		rpd."ItemCode",
+		sum(rpd."Quantity") as "rpdQuantity"
+	from
+		test.ORPD orpd,
+		test.RPD1 rpd
+	where
+		rpd."DocEntry" = orpd."DocEntry"
+		and orpd."CANCELED" = 'N'
+		and orpd."DocDate" between 'FROM' AND 'TODATE'
+	group by
+		rpd."WhsCode",
+		rpd."ItemCode") rpd on oitm."ItemCode" = rpd."ItemCode" and oitw."WhsCode" = rpd."WhsCode"
+	left join (select 
+		iqr."WhsCode",
+		iqr."ItemCode",
+		sum(iqr."Quantity") as "iqrQuantity"
+	from
+		test.OIQR oiqr,
+		test.IQR1 iqr
+	where
+		iqr."DocEntry" = oiqr."DocEntry"
+		and oiqr."DocDate" between 'FROM' AND 'TODATE'
+	group by
+		iqr."WhsCode",
+		iqr."ItemCode") iqr on oitm."ItemCode" = iqr."ItemCode" and oitw."WhsCode" = iqr."WhsCode"
+	left join (select 
+		i1."WhsCode",
+		i1."ItemCode",
+		sum(i1."Quantity") as "invQuantity"
+	from
+		test.OINV i0,
+		test.INV1 i1
+	where
+		i1."DocEntry" = i0."DocEntry"
+		and i0."CANCELED" = 'N'
+		and i0."DocDate" between 'FROM' AND 'TODATE'
+	group by
+		i1."WhsCode",
+		i1."ItemCode") inv on oitm."ItemCode" = inv."ItemCode" and oitw."WhsCode" = inv."WhsCode"
+	left join (select  
+		pdn."WhsCode",
+		pdn."ItemCode",
+		sum(pdn."Quantity") as "pdnQuantity"
+	from
+		test.OPDN opdn,
+		test.PDN1 pdn
+	where 
+		pdn."DocEntry" = opdn."DocEntry"
+		and opdn."CANCELED" = 'N'
+		and opdn."DocDate" between 'FROM' AND 'TODATE'
+	group by 
+		pdn."WhsCode",
+		pdn."ItemCode") pdn on oitm."ItemCode" = pdn."ItemCode" and oitw."WhsCode" = pdn."WhsCode"
+	left join (select  
+		pch."WhsCode",
+		pch."ItemCode",
+		sum(pch."Quantity") as "pchQuantity"
+	from
+		test.OPCH opch,
+		test.PCH1 pch
+	where 
+		pch."DocEntry" = opch."DocEntry"
+		and opch."CANCELED" = 'N'
+		and opch."DocDate" between 'FROM' AND 'TODATE'
+	group by 
+		pch."WhsCode",
+		pch."ItemCode") pch on oitm."ItemCode" = pch."ItemCode" and oitw."WhsCode" = pch."WhsCode"
+	left join (select 
+		ign."WhsCode",
+		ign."ItemCode",
+		sum(ign."Quantity") as "ignQuantity"
+	from
+		test.OIGN oign,
+		test.ign1 ign
+	where
+		ign."DocEntry" = oign."DocEntry"
+		and oign."CANCELED" = 'N'
+		and oign."DocDate" between 'FROM' AND 'TODATE'
+	group by	
+		ign."WhsCode",
+		ign."ItemCode") ign on oitm."ItemCode" = ign."ItemCode" and oitw."WhsCode" = ign."WhsCode"
+	left join (select 
+		dln."WhsCode",
+		dln."ItemCode",
+		sum(dln."Quantity") as "dlnQuantity"
+	from 
+		test.odln odln,
+		test.dln1 dln
+	where odln."DocEntry" = dln."DocEntry"
+		and odln."DocDate" between 'FROM' AND 'TODATE'
+		and odln."CANCELED" ='N' 
+	group by 
+		dln."WhsCode",
+		dln."ItemCode") dln on oitm."ItemCode" = dln."ItemCode" and oitw."WhsCode" = dln."WhsCode"
+	left join (select 
+		rdn."WhsCode",
+		rdn."ItemCode",
+		sum(rdn."Quantity") as "rdnQuantity"
+	from
+		test.ordn ordn,
+		test.rdn1 rdn
+	where ordn."DocEntry" = rdn."DocEntry"
+		and ordn."DocDate" between 'FROM' AND 'TODATE'
+		and ordn."CANCELED" ='N' 
+	group by
+		rdn."WhsCode",
+		rdn."ItemCode") rdn on oitm."ItemCode" = rdn."ItemCode" and oitw."WhsCode" = rdn."WhsCode"
+	left join (select 
+		rin."WhsCode",
+		rin."ItemCode", 
+		sum(rin."Quantity") as "rinQuantity"
+	from 
+	 	test.orin orin, 
+	 	test.rin1 rin
+	 where 
+	 	orin."DocEntry" = rin."DocEntry"
+	 	and orin."DocDate" between 'FROM' AND 'TODATE'
+		and orin."CANCELED" ='N' 
+	group by
+		rin."WhsCode",
+		rin."ItemCode") rin on oitm."ItemCode" = rin."ItemCode" and oitw."WhsCode" = rin."WhsCode"
+	left join (select 
+		wtr."FromWhsCod",
+		wtr."ItemCode", 
+		sum(wtr."Quantity") as "wtrQuantityFiller"
+	from 
+	 	test.OWTR owtr,
+	 	test.wtr1 wtr
+	 where 
+	 	owtr."DocEntry" = wtr."DocEntry"
+	 	and owtr."DocDate" between 'FROM' AND 'TODATE'
+		and owtr."CANCELED" ='N' 
+	group by
+		wtr."FromWhsCod",
+		wtr."ItemCode") wtr on oitm."ItemCode" = wtr."ItemCode" and oitw."WhsCode" = wtr."FromWhsCod"
+	left join (select
+		wtr."WhsCode", 
+		wtr."ItemCode", 
+		sum(wtr."Quantity")as "wtrQuantityTo"
+	from 
+	 	test.OWTR owtr,
+	 	test.wtr1 wtr
+	 where 
+	 	owtr."DocEntry" = wtr."DocEntry"
+	 	and owtr."DocDate" between 'FROM' AND 'TODATE'
+		and owtr."CANCELED" ='N' 
+	group by
+		wtr."WhsCode",
+		wtr."ItemCode") wtrto on oitm."ItemCode" = wtrto."ItemCode" and oitw."WhsCode" = wtrto."WhsCode"
+	left join (select 
+		ige."WhsCode",
+		ige."ItemCode",
+		sum(ige."Quantity") as "igeQuantity" 
+	from
+		test.OIGE oige,
+		test.ige1 ige
+	where oige."DocEntry" = ige."DocEntry"
+		and oige."DocDate" between 'FROM' AND 'TODATE'
+		and oige."CANCELED" = 'N'
+	group by
+		ige."WhsCode",
+		ige."ItemCode") ige on oitm."ItemCode" = ige."ItemCode" and oitw."WhsCode" = ige."WhsCode"
+	left join (select 
+		i1."WhsCode",
+		i1."ItemCode",
+		sum(i1."Quantity") as "invDlnQuantity"
+	from
+		test.OINV i0,
+		test.INV1 i1,
+		test.odln odln,
+		test.dln1 dln
+	where
+		i1."DocEntry" = i0."DocEntry"
+		and i0."CANCELED" = 'N'
+		and i0."DocDate" between 'FROM' AND 'TODATE'
+		and odln."DocEntry" = dln."DocEntry"
+		and odln."CANCELED" ='N' 
+		and dln."TrgetEntry" = i0."DocEntry"
+		and dln."ItemCode" = i1."ItemCode"
+	group by
+		i1."WhsCode",
+		i1."ItemCode") invdln on oitm."ItemCode" = invdln."ItemCode" and oitw."WhsCode" = invdln."WhsCode"
+-----------
+---	beofre date
+	left join (select 
+		rpd."WhsCode",
+		rpd."ItemCode",
+		sum(rpd."Quantity") as "rpdQuantityBf"
+	from
+		test.ORPD orpd,
+		test.RPD1 rpd
+	where
+		rpd."DocEntry" = orpd."DocEntry"
+		and orpd."CANCELED" = 'N'
+		and orpd."DocDate" < 'FROM' 
+	group by
+		rpd."WhsCode",
+		rpd."ItemCode") rpdb on oitm."ItemCode" = rpdb."ItemCode" and oitw."WhsCode" = rpdb."WhsCode"
+	left join (select 
+		iqr."WhsCode",
+		iqr."ItemCode",
+		sum(iqr."Quantity") as "iqrQuantityBf"
+	from
+		test.OIQR oiqr,
+		test.IQR1 iqr
+	where
+		iqr."DocEntry" = oiqr."DocEntry"
+		and oiqr."DocDate" < 'FROM' 
+	group by
+		iqr."WhsCode",
+		iqr."ItemCode") iqrb on oitm."ItemCode" = iqrb."ItemCode" and oitw."WhsCode" = iqrb."WhsCode"
+	left join (select 
+		i1."WhsCode",
+		i1."ItemCode",
+		sum(i1."Quantity") as "invQuantityBf"
+	from
+		test.OINV i0,
+		test.INV1 i1
+	where
+		i1."DocEntry" = i0."DocEntry"
+		and i0."CANCELED" = 'N'
+		and i0."DocDate" < 'FROM'
+	group by
+		i1."WhsCode",
+		i1."ItemCode") invb on oitm."ItemCode" = invb."ItemCode" and oitw."WhsCode" = invb."WhsCode" 
+	left join (select  
+		pdn."WhsCode",
+		pdn."ItemCode",
+		sum(pdn."Quantity") as "pdnQuantityBf"
+	from
+		test.OPDN opdn,
+		test.PDN1 pdn
+	where 
+		pdn."DocEntry" = opdn."DocEntry"
+		and opdn."CANCELED" = 'N'
+		and opdn."DocDate" < 'FROM'
+	group by 
+		pdn."WhsCode",
+		pdn."ItemCode") pdnb on oitm."ItemCode" = pdnb."ItemCode" and oitw."WhsCode" = pdnb."WhsCode"
+	left join (select  
+		pch."WhsCode",
+		pch."ItemCode",
+		sum(pch."Quantity") as "pchQuantityBf"
+	from
+		test.OPCH opch,
+		test.PCH1 pch
+	where 
+		pch."DocEntry" = opch."DocEntry"
+		and opch."CANCELED" = 'N'
+		and opch."DocDate" < 'FROM'
+	group by 
+		pch."WhsCode",
+		pch."ItemCode") pchb on oitm."ItemCode" = pchb."ItemCode" and oitw."WhsCode" = pchb."WhsCode"
+	left join (select 
+		ign."WhsCode",
+		ign."ItemCode",
+		sum(ign."Quantity") as "ignQuantityBf"
+	from
+		test.OIGN oign,
+		test.ign1 ign
+	where
+		ign."DocEntry" = oign."DocEntry"
+		and oign."CANCELED" = 'N'
+		and oign."DocDate" < 'FROM'
+	group by	
+		ign."WhsCode",
+		ign."ItemCode") ignb on oitm."ItemCode" = ignb."ItemCode" and oitw."WhsCode" = ignb."WhsCode"
+	left join (select 
+		dln."WhsCode",
+		dln."ItemCode",
+		sum(dln."Quantity") as "dlnQuantityBf"
+	from 
+		test.odln odln,
+		test.dln1 dln
+	where odln."DocEntry" = dln."DocEntry"
+		and odln."DocDate" < 'FROM'
+		and odln."CANCELED" ='N' 
+	group by 
+		dln."WhsCode",
+		dln."ItemCode") dlnb on oitm."ItemCode" = dlnb."ItemCode" and oitw."WhsCode" = dlnb."WhsCode"
+	left join (select 
+		rdn."WhsCode",
+		rdn."ItemCode",
+		sum(rdn."Quantity") as "rdnQuantityBf"
+	from
+		test.ordn ordn,
+		test.rdn1 rdn
+	where ordn."DocEntry" = rdn."DocEntry"
+		and ordn."DocDate" < 'FROM'
+		and ordn."CANCELED" ='N' 
+	group by
+		rdn."WhsCode",
+		rdn."ItemCode") rdnb on oitm."ItemCode" = rdnb."ItemCode" and oitw."WhsCode" = rdnb."WhsCode"
+	left join (select 
+		rin."WhsCode",
+		rin."ItemCode", 
+		sum(rin."Quantity") as "rinQuantityBf"
+	from 
+	 	test.orin orin, 
+	 	test.rin1 rin
+	 where 
+	 	orin."DocEntry" = rin."DocEntry"
+	 	and orin."DocDate" < 'FROM'
+		and orin."CANCELED" ='N' 
+	group by
+		rin."WhsCode",
+		rin."ItemCode") rinb on oitm."ItemCode" = rinb."ItemCode" and oitw."WhsCode" = rinb."WhsCode"
+	left join (select 
+		wtr."FromWhsCod",
+		wtr."ItemCode", 
+		sum(wtr."Quantity") as "wtrQuantityFillerBf"
+	from 
+	 	test.OWTR owtr,
+	 	test.wtr1 wtr
+	 where 
+	 	owtr."DocEntry" = wtr."DocEntry"
+	 	and owtr."DocDate"  < 'FROM'
+		and owtr."CANCELED" ='N' 
+	group by
+		wtr."FromWhsCod",
+		wtr."ItemCode") wtrb on oitm."ItemCode" = wtrb."ItemCode" and oitw."WhsCode" = wtrb."FromWhsCod"
+	left join (select
+		wtr."WhsCode", 
+		wtr."ItemCode", 
+		sum(wtr."Quantity")as "wtrQuantityToBf"
+	from 
+	 	test.OWTR owtr,
+	 	test.wtr1 wtr
+	 where 
+	 	owtr."DocEntry" = wtr."DocEntry"
+	 	and owtr."DocDate" < 'FROM'
+		and owtr."CANCELED" ='N' 
+	group by
+		wtr."WhsCode",
+		wtr."ItemCode") wtrtob on oitm."ItemCode" = wtrtob."ItemCode" and oitw."WhsCode" = wtrtob."WhsCode"
+	left join (select 
+		ige."WhsCode",
+		ige."ItemCode",
+		sum(ige."Quantity") as "igeQuantityBf" 
+	from
+		test.OIGE oige,
+		test.ige1 ige
+	where oige."DocEntry" = ige."DocEntry"
+		and oige."DocDate" < 'FROM'
+		and oige."CANCELED" = 'N'
+	group by
+		ige."WhsCode",
+		ige."ItemCode") igeb on oitm."ItemCode" = igeb."ItemCode" and oitw."WhsCode" = igeb."WhsCode"
+	left join (select 
+		i1."WhsCode",
+		i1."ItemCode",
+		sum(i1."Quantity") as "invDlnQuantityBf"
+	from
+		test.OINV i0,
+		test.INV1 i1,
+		test.odln odln,
+		test.dln1 dln
+	where
+		i1."DocEntry" = i0."DocEntry"
+		and i0."CANCELED" = 'N'
+		and i0."DocDate" < 'FROM'
+		and odln."DocEntry" = dln."DocEntry"
+		and odln."CANCELED" ='N' 
+		and dln."TrgetEntry" = i0."DocEntry"
+		and dln."ItemCode" = i1."ItemCode"
+	group by
+		i1."WhsCode",
+		i1."ItemCode") invdlnb on oitm."ItemCode" = invdlnb."ItemCode" and oitw."WhsCode" = invdlnb."WhsCode"
+where 
+	oitm."CardCode" = 'VENDOR'
+	and oitm."U_IsConsigned" = 'Y'
+	) t0
+group by 
+	t0."ItemCode",
+	t0."ItemName",
+	t0."PriceBuy",
+	t0."PriceSale"

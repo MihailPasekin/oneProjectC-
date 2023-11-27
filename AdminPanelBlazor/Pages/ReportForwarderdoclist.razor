@@ -1,0 +1,163 @@
+﻿@page "/forwarderdoclist"
+@using AdminPanelBlazor.Interfaces;
+@using AdminPanelBlazor.Services;
+@using EComersObjectLib.Objects;
+@using EComersObjectLib.SapObjects;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IWarehouse WarehouseService
+@inject IOinvService iOinvService
+
+<body class="body">
+    <PageTitle>WareHouse</PageTitle>
+    <h3 class="colorFontWhite">Список документов экспедитора @FromDate.ToShortDateString()</h3>
+
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">С даты</h3>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="FromDate"></InputDate>
+        </div>
+    </div>
+
+    <div class="row" style="padding-top:15px;">
+        <div class="col-sm-2">
+            <h3 for="exampleInputComment">Выбор сотрудника</h3>
+        </div>
+
+        <div class="col-sm-2">
+            <select class="form-control" id="emploe" @onchange="EmployeSelected">
+                <option selected>Выбрать...</option>
+                @foreach (var emploe in EmploeAll)
+                {
+                    <option value="@emploe.empId">@emploe.firstName @emploe.lastName</option>
+                }
+            </select>
+        </div>
+
+        <div style="padding-top:10px;"></div>
+    </div>
+
+    <div style="padding-bottom:20px">
+        <button class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetReportAsync())" type="submit">Показать отчет</button>
+    </div>
+    <div style="padding-top:30px;"></div>
+    <form class="colorFontWhite" method="post" asp-page-handler="VisitId">
+        <table border=2 cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+            <thead class="model_table">
+                <tr>
+                    <th>Номер Документа</th>
+                    <th>Код клиента</th>
+                    <th>Территория</th>
+                    <th>Контрагент</th>
+                    <th>Агент</th>
+                    <th>Сумма</th>
+                    <th>Оплата нал(+/-)</th>
+                </tr>
+                @if (forwardeReports != null)
+                {
+                    @foreach (var loading in forwardeReports)
+                    {
+                        <tr>
+                            <td>@loading.DocNum</td>
+                            <td>@loading.CardCode</td>
+                            <td>@loading.RouteID</td>
+                            <td>@loading.CardName</td>
+                            <td>@loading.Name</td>
+                            <td>@loading.DocTotal</td>
+                            <td>@loading.PayType</td>
+                        </tr>
+                    }
+                        <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th>Итого:</th>
+                        <th>@sumDocTotal</th>
+                        <th></th>
+                        </tr>
+                }
+            </thead>
+        </table>
+    </form>
+    <div style="padding:10px"></div>
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>
+    <div style="padding:30px;"></div>
+    
+    <form class="colorFontWhite" method="post" asp-page-handler="VisitId">
+        <table border=2 cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+            <thead class="model_table">
+                @if (forwardeReports != null)
+                {
+                        <tr>
+                            <td>Наличный расчет (ТМТ)</td>
+                            <td>Кредиты (ТМТ)</td>
+                            <td>Банк (ТМТ)</td>
+                            <td>Перенос (ТМТ)</td>
+                            <td>Возвраты (ТМТ)</td>
+                            <td>Расходы (ТМТ)</td>
+                        </tr>
+                        <tr>
+                            <td>@sumNal</td>
+                            <td>@sumCred</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
+                 
+                }
+            </thead>
+        </table>
+    </form>
+</body>
+
+@code {
+    private string empId = "830";
+    private DateTime FromDate { get; set; } = DateTime.Now.AddDays(-1);
+    private List<OHEM> EmploeAll = new List<OHEM>();
+    private List<ForwarderDocList> forwardeReports;
+    private double nal = 0;
+    private double kred = 0;
+    private double sumDocTotal { get { return forwardeReports.Sum(p => p.DocTotal); } }
+    private double sumNal;
+    private double sumCred;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // forwardeReports = (await WarehouseService.GetsForwarderDocList(FromDate.ToString("yyyy.MM.dd"), empId));
+        EmploeAll = (await iOinvService.GetAllEmployesEkspeditorAsync());
+
+    }
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        empId = eventArgs.Value.ToString();
+    }
+
+    protected async Task GetReportAsync()
+    {
+        forwardeReports = (await WarehouseService.GetsForwarderDocList(FromDate.ToString("yyyy.MM.dd"), empId));
+        foreach (var i in forwardeReports)
+        {
+            if (i.PayType.Contains("Кредит"))
+            {
+                sumCred = sumCred + i.DocTotal;
+            }
+            else
+            {
+                sumNal = sumNal + i.DocTotal;
+            }
+        }
+        await Task.CompletedTask;
+    }
+
+    protected async void CreateDocument()
+    {
+        string employeName = EmploeAll.Where(p => p.empId == int.Parse(empId)).Select(p => string.Concat(p.firstName, " ", p.lastName)).FirstOrDefault() ?? " ";
+        await excelService.ForwarderDocListReportAsync(FromDate, employeName, JS, forwardeReports, "export.xlsx");
+    }
+}

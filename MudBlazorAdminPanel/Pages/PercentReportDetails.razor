@@ -1,0 +1,112 @@
+﻿@page "/percentreportdetails"
+
+@using MudBlazorAdminPanel.Interfaces;
+@using EComersObjectLib.Objects;
+
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccountingDetail AccountingDetailService
+
+<body>
+<h3>Подробности отчета "Проценты"</h3>
+
+    <MudTable Items="@details" Dense="false" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>
+                <MudTh>Номер документа</MudTh>
+                <MudTh>Дата</MudTh>
+                <MudTh>Код заказщика</MudTh>
+                <MudTh>Имя заказчика</MudTh>
+                <MudTh>Сумма заказа</MudTh>
+                <MudTh>Товары</MudTh>               
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+           <MudTd>@context.DocNum</MudTd>
+            <MudTd>@context.DocDate.ToString("dd.MM.yyyy")</MudTd>
+            <MudTd>@context.CardCode</MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Sum</MudTd>
+                 <MudTd>
+                    <MudButton class="div_right_livt" @onclick="(()=>NavigatorPageItem(context.DocEntry))" Variant="Variant.Filled" Color="Color.Primary" value="@context.DocEntry" name="itemId">
+                       Товары
+                    </MudButton>
+                 </MudTd>                  
+           </RowTemplate>
+    </MudTable>
+    <div style="padding-top:20px">
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>GoToPercentReport())" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" type="submit">Вернуться к отчету</MudButton>
+    </div>
+</body>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string id { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string To { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string JopTitle { get; set; }
+
+    public List<PercentDeliveryAgent> details { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //if (DateTime.TryParse(fromDate, out DateTime date))
+        switch (JopTitle)
+        {
+            case "agent":
+                details = await AccountingDetailService.GetPercentDetailsAgent(From.Replace("_", "."), To.Replace("_", "."), id);
+                break;
+            case "delivery":
+                details = await AccountingDetailService.GetPercentDetailsDelivery(From.Replace("_", "."), To.Replace("_", "."), id);
+                break;
+            case "supervisor":
+                details = await AccountingDetailService.GetPercentDetailsSupervisor(From.Replace("_", "."), To.Replace("_", "."), id);
+                break;
+        }
+
+        await Task.CompletedTask;
+
+    }
+
+    protected override async void OnParametersSet()
+    {
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+
+       // DateTime.TryParseExact(From, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out fromDate);
+        //DateTime.TryParseExact(To, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out toDate);
+
+        switch (JopTitle)
+        {
+            case "agent":
+                details = await AccountingDetailService.GetPercentDetailsAgent(From.Replace("_", "."), To.Replace("_", "."), id);
+                break;
+            case "delivery":
+                details = await AccountingDetailService.GetPercentDetailsDelivery(From.Replace("_", "."), To.Replace("_", "."), id);
+                break;
+            case "supervisor":
+                details = await AccountingDetailService.GetPercentDetailsSupervisor(From.Replace("_", "."), To.Replace("_", "."), id);
+                break;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    public void NavigatorPageItem(int docEntry)
+    {
+        //id={id}&From={From}&To={To}&JopTitle={JopTitle}
+        navigationParams.SetPrevParams(new Dictionary<string, string>() { { "percentreportdetails", $"id={id}&From={From}&To={To}&JopTitle={JopTitle}" } });
+        navigationmanager.NavigateTo($"invoiceItemPage?id={docEntry}", false);
+    }
+    public void GoToPercentReport()
+    {
+        Dictionary<string, string> param = navigationParams.GetPrevParams();
+        navigationmanager.NavigateTo($"percentreport?from={param["from"]}&to={param["to"]}", false);
+    }
+}

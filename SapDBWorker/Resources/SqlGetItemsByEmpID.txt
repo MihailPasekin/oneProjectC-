@@ -1,0 +1,21 @@
+SELECT  
+	oitm."ItemCode", 
+	oitm."ItemName", 
+	itm1."Price", 
+	ohws."WhsName", 
+	oitw."OnHand" - oitw."IsCommited" as ItemCount, 
+	"PicturName" ,
+	oitm."ItmsGrpCod"
+FROM  
+	TEST."ITM1" as itm1,    
+	TEST."OITM" as oitm, 
+	TEST."OITW" as oitw, 
+	Test."OWHS" as ohws
+where 
+	itm1."ItemCode" = oitm."ItemCode"  
+	and oitm."frozenFor" = 'N' 
+	and oitw."ItemCode" = oitm."ItemCode" 
+	and oitw."WhsCode" = 'WHSCODE' 
+	and itm1."PriceList" = 2 
+	and ohws."WhsCode" = oitw."WhsCode"
+	and oitm."SellItem" = 'Y'

@@ -1,0 +1,82 @@
+﻿@page "/merchvisit"
+
+
+
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+
+@inject NavigationManager navigationmanager
+@inject IOinvService OinvService
+@inject NavigationManager Navigation
+
+<body class="body"> 
+<PageTitle>Merch Visit</PageTitle>
+    <h3 class="colorFontWhite">Merch Visit </h3>
+
+<EditForm Model="@empId" OnSubmit="@HandleSubmit">
+        <InputText class="input" @bind-Value="empId" />
+
+        <button class="input_color" type="submit">Submit</button>
+</EditForm>
+
+
+    <form class="colorFontWhite" method="post" asp-page-handler="VisitId">
+        <table border=2 cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+            <thead class="model_table">
+            <tr>
+                <th>VisitID</th>
+                <th>CardCode</th>
+                <th>CardName</th>
+                <th>VisitDate</th>
+                <th>Merchandising</th>
+                <th>Comment</th>
+                <th>SaleProducts</th>
+            </tr>
+            @if (MerchVisits != null)
+            {
+                @foreach (var merchVisit in MerchVisits)
+                {
+                    <tr>
+                        <input type="hidden" name="merchVisit.Index" value="@merchVisit.MerchVisitId" />
+                        <td>@merchVisit.MerchVisitId</td>
+                        <td>@merchVisit.CardCode</td>
+                        <td>@merchVisit.Customer.CardName</td>
+                        <td>@merchVisit.VisitDateTime.ToShortDateString()</td>
+                        <td>@merchVisit.Merch</td>
+                        <td>@merchVisit.Comment</td>
+                        <td>
+                                <button class="div_right_livt" @onclick="(()=>NavigatorPageMerchVisit(merchVisit.MerchVisitId))" value="@merchVisit.MerchVisitId" name="visitId">Отчет по товарам</button>
+                        </td>
+                    </tr>
+
+                }
+            }
+        </thead>
+    </table>
+</form>
+</body>
+
+@code {
+    private string empId = "1230";
+    private List<MerchVisit> MerchVisits;
+
+    protected override async Task OnInitializedAsync()
+    {
+        MerchVisits = (await OinvService.GetAllMerchVisits());
+    }
+
+    private async Task HandleSubmit()
+    {
+
+        MerchVisits = (await OinvService.GetAllMerchVisits(empId));
+
+        await Task.CompletedTask;
+    }
+    private void NavigatorPageMerchVisit(int id)
+    {
+        navigationmanager.NavigateTo($"pageMerchVist/{id}", false);
+    }
+}

@@ -1,0 +1,237 @@
+﻿@page "/dailyCheckoutReportKassa"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using System.IO;
+@using System.Net.Http.Json;
+
+@inject HttpClient httpclient
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IAccounting AccountingService
+
+<body class="body ,colorFont">
+    <h1 class="colorFont">Ежедневный отчет</h1>
+       
+   @* <div class='col-sm-2'> 
+        <table class="col_table">
+            <tr>
+                <td>
+                   <MudDatePicker @bind-Date="fromDate" Label="С Даты"></MudDatePicker>
+                </td>
+            </tr>
+        </table>
+    </div>
+            
+    <div class='col-sm-2'>
+        <table class="col_table">
+                <tr>
+                    <td>
+                    <MudDatePicker @bind-Date="toDate" Label="По Дату"></MudDatePicker>
+                    </td>
+                </tr>
+        </table>
+    </div>*@
+
+    <MudStack Spacing="20" Row="false">
+        <MudText></MudText>
+        <MudDateRangePicker Label="Выбор Даты" @bind-DateRange="dataRange" />
+    </MudStack>
+
+
+    <div style="padding:10px"></div>
+
+    <div class='col-sm-2'>
+        
+    <MudSelect T="string" @bind-Value="@selectedCashAccount" Label="Счет кассы" Variant="Variant.Outlined" Placeholder="Please Select">
+        <option value=""></option>
+    @foreach (var account in cashAccounts)
+        {
+        <MudSelectItem Value="@account.CashAcc">@account.CashAcc</MudSelectItem>
+        }
+    </MudSelect>
+          
+    </div>
+    
+    <div >
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetKassaDaylyReport())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.AddCircle" type="submit">Показать отчет</MudButton>
+    </div>
+    <div style ="padding:30px"></div>
+    
+    <MudTable Items="@daylyKassaReport.KassaLines" Dense="false" Hover="true" Bordered="true" Striped="true" SortLabel="Sort By">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<DaylyReportKassaLines, object>(x=>x.AccountablePerson)">Подотчетное лицо</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<DaylyReportKassaLines, object>(x=>x.Coming)">Приход наличными</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<DaylyReportKassaLines, object>(x=>x.Bank)">Банк</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<DaylyReportKassaLines, object>(x=>x.Transfer)">Перевод</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<DaylyReportKassaLines, object>(x=>x.Credits)">Кредит</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<DaylyReportKassaLines, object>(x=>x.Expense)">Расход</MudTableSortLabel></MudTh>
+            <MudTh>Всего</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="DocDate">@context.AccountablePerson</MudTd>
+            <MudTd DataLabel="SumZakaza">@context.Coming</MudTd>
+            <MudTd DataLabel="SumProdaji">@context.Bank</MudTd>
+            <MudTd DataLabel="SumVozvrat">@context.Consignment</MudTd>
+            <MudTd DataLabel="SumOplaty">@context.Credits</MudTd>
+            <MudTd DataLabel="">@context.Expense</MudTd>
+            <MudTd>@(context.Coming + context.Bank + context.Transfer + context.Credits + context.Total + context.Expense)</MudTd>
+        </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+    </MudTable>
+    <div style="padding:10px">
+    </div>
+
+
+        <MudStack Row="true">
+                <MudPaper Class="pa-3">
+                <h3 class="colorFont">Касса на начало дня</h3>
+                </MudPaper>
+
+                <div class='col-sm-2'>
+                    <MudPaper Class="pa-3">
+                    <span class="colorFontWhite">@daylyKassaReport.KassaStartDay </span>
+                  </MudPaper>
+                </div>               
+            </MudStack>
+
+        <div style="padding:10px"></div>
+
+         <MudStack Row="true">
+            
+                <MudPaper Class="pa-3">
+                <h3 class="colorFont">Сумма прихода</h3>
+                </MudPaper>
+
+            <div class='col-sm-2'>
+                <MudPaper Class="pa-3">
+                <span class="colorFontWhite">@daylyKassaReport.KassaComming </span>
+                </MudPaper>
+            </div>
+        </MudStack>
+
+        <div style="padding:10px"></div>
+
+         <MudStack Row="true">
+                <MudPaper Class="pa-3">
+                <h3 class="colorFont">Расход</h3>
+                </MudPaper>
+
+            <div style="padding:10px"></div>
+            <div class='col-sm-2'>
+                <MudPaper Class="pa-3">
+                <span class="colorFontWhite">@daylyKassaReport.KassaExpense </span>
+                </MudPaper>
+            </div>
+       </MudStack>
+
+        <div style="padding:10px"></div>
+
+         <MudStack Row="true">           
+                <MudPaper Class="pa-3">
+                <h3 class="colorFont">Переводы</h3>
+                </MudPaper>           
+
+            <div class='col-sm-2'>
+                <MudPaper Class="pa-3">
+                <span class="colorFontWhite">@daylyKassaReport.KassaTransactions</span>
+                </MudPaper>
+            </div>
+       </MudStack>
+
+        <div style="padding:10px"></div>
+
+        <MudStack Row="true">
+                <MudPaper Class="pa-3">
+                <h3 class="colorFont">Касса на конец дня</h3>
+                </MudPaper>           
+
+            <div class='col-sm-2'>
+                <MudPaper Class="pa-3">
+                <span class="colorFontWhite">@daylyKassaReport.KassaEndDay </span>
+                </MudPaper>
+            </div>
+        </MudStack>
+
+        <div style="padding:10px"></div>
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Download">Скачать Excel</MudButton>
+        
+    <h3 class="colorFont" style="padding-top:30px">Платежи не привязанные к инвойсам</h3>
+        <MudTable Items="@orctErrors" Dense="false" Hover="true" Bordered="true" Striped="true">
+       <HeaderContent>
+                <MudTh>Номер документа</MudTh>
+                <MudTh>Дата документа</MudTh>
+                <MudTh>Заказчик</MudTh>
+                <MudTh>Касса</MudTh>
+                <MudTh>Сумма</MudTh>
+       </HeaderContent> 
+       <RowTemplate>
+                  <MudTd>@context.DocNum</MudTd>
+                  <MudTd>@context.DocDate</MudTd>
+                  <MudTd>@context.CardName</MudTd>
+                  <MudTd>@context.CashAcct</MudTd>
+                  <MudTd>@context.Cashsum</MudTd>
+       </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+       </MudTable>
+
+</body>
+
+@code {
+    private bool _loading;
+    private string selectedCashAccount = "";
+    MudDateRangePicker _picker;
+    private DateRange dataRange = new DateRange(DateTime.Now.Date, DateTime.Now.Date);
+    private DaylyReportKassa daylyKassaReport = new DaylyReportKassa();
+    private List<CashAccount> cashAccounts { get; set; } = new List<CashAccount>();
+    private List<ErrorOrct> orctErrors { get; set; } = new List<ErrorOrct>();
+    private string valuePer = "";
+    private string ValueTry { get { return valuePer; } set { valuePer = value; } }
+    private bool show = false;
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? To { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        cashAccounts = await AccountingService.GetListCashAccount();
+        orctErrors = await AccountingService.GetListErrorOrctsAsync();
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+       // DateTime.TryParseExact(From, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime from);
+       // dataRange.Start = from;
+        //DateTime.TryParseExact(To, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime to);
+        //dataRange.End = to;
+        valuePer = "";
+        await Task.CompletedTask;
+    }
+    private async Task GetKassaDaylyReport()
+    {
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+        if (selectedCashAccount != string.Empty)
+        {
+            daylyKassaReport = await AccountingService.GetDaylyKassaReport(dataRange.Start.Value.Date.ToString("yyyy.MM.dd"), dataRange.End.Value.Date.ToString("yyyy.MM.dd"), selectedCashAccount);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    protected async void CreateDocument()
+    {
+
+        await excelService.GenerateWeatherDeyliKassaAsync(dataRange.Start.Value, dataRange.End.Value, JS, daylyKassaReport, "export.xlsx");
+    }
+}

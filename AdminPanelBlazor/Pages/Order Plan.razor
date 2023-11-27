@@ -1,0 +1,73 @@
+﻿@page "/merchPlanCop"
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@attribute [Authorize(Roles = "Admin, Operator")]
+
+@inject IOinvService OinvService
+
+<body>
+    
+        <div class="row">
+            <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12" style=" margin-bottom:20px;">
+                <table border=2 cellspacing="0" cellpadding="10" class="model_table, colorFont">
+                    <thead class="model_table" style="min-width:max-content">
+                        <tr>
+                            <th>ИД сотрудника</th>
+                            <th >План на дату</th>
+                            <th >Комментарий</th>
+                        </tr>
+                        @if (Oinvs != null)
+                        {
+                            @foreach (var merchplan in Oinvs)
+                            {
+                                <tr @onclick="()=>{merchPlan.PlanDetails = merchplan.PlanDetails;}">
+                                    <td>@merchplan.EmpId</td>
+                                    <td>@merchplan.PlanDate</td>
+                                    <td>@merchplan.Coment</td>
+                                </tr>
+                            }
+                        }
+                    </thead>
+                </table>
+            </div>
+
+            <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <table border=2 cellspacing="0" cellpadding="10" class="model_table, colorFont">
+                    <thead class="model_table">
+                        <tr>
+                            <th>Заказчик</th>
+                            
+                        </tr>
+                        @if (Oinvs != null)
+                        {
+                            @foreach (var merchdetils in merchPlan.PlanDetails ?? new List<PlanDetail>())
+                            {
+                                <tr>
+                                    <td>@merchdetils.CardName</td>
+                                </tr>
+                            }
+                        }
+                    </thead>
+                </table>
+            </div>
+        </div>
+    
+</body>
+
+@code{
+    private MerchPlan merchPlan = new MerchPlan();
+    private List<MerchPlan> Oinvs;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Oinvs = await OinvService.MerchPlansAll();
+       }
+}

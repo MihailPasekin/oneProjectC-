@@ -1,0 +1,63 @@
+select
+	a."DocEntry" as "IdReceipts",
+	a."DocNum" as "ReceiptNumber",
+	a."DocDate" as "ReceiptDate",
+	a."ItemCode" as "ProductCode",	
+	a."Dscription" as "ProductName",
+	case when a."DocDate" < FROMDATE then a."OpenCreQty" else 0 end as "QuantityAtStart",
+	case when a."DocDate" < FROMDATE then 0 else a."Quantity" end as "ReceiptsPeriod",
+	a."Qty_Ret" as "ReturnsPeriod",
+	a."OpenCreQty" - a."INV_QTY" as "QuantityAtEnd",
+	a."INV_QTY" as "Sales",
+	a."U_RecPrice" as "RecPrice",
+	a."INV_QTY" * (a."U_RecPrice" - a."Price") as "CommissionRemuneration",
+	a."INV_QTY" * a."Price" as "PaymentPrincipal",
+	a."Price" as "AdmissionPrice",
+	case when a."DocDate" < FROMDATE then a."OpenCreQty" else 0 end * a."Price" as "StartingAmountArrivalPrice",
+	case when a."DocDate" < FROMDATE then a."OpenCreQty" else 0 end * a."U_RecPrice" as "StartingAmountPriceDetails",
+	case when a."DocDate" < FROMDATE then 0 else a."Quantity" end * a."Price" as "ReceiptAmountArrivalPrice",
+	case when a."DocDate" < FROMDATE then 0 else a."Quantity" end * a."U_RecPrice" as "ReceiptAmountRecommendedPrice",
+	(a."OpenCreQty" - a."INV_QTY") * a."Price" as "AmountEndEntryPrice",
+	(a."OpenCreQty" - a."INV_QTY") * a."U_RecPrice" as "AmountEndSellingPrice"
+from (
+select 
+	t0."DocEntry",
+	t0."DocNum",
+	t0."DocDate",
+	t1."ItemCode",	
+	t1."Dscription",
+	t1."Quantity",
+	t1."Price",
+	t1."U_RecPrice",
+	t1."OpenCreQty",
+	case 
+		when ifnull(t2."INV_QTY", 0) >= sum(t1."OpenCreQty") over(partition by t1."ItemCode" order by t0."DocDate",t1."DocEntry",t1."LineNum" )  then t1."OpenCreQty" 
+		when ifnull(t2."INV_QTY", 0) > ifnull(sum(t1."OpenCreQty") over(partition by t1."ItemCode" order by t0."DocDate",t1."DocEntry",t1."LineNum" rows between UNBOUNDED PRECEDING and 1 PRECEDING), 0)
+			and ifnull(t2."INV_QTY", 0) <= sum(t1."OpenCreQty") over(partition by t1."ItemCode" order by t0."DocDate",t1."DocEntry",t1."LineNum" )  then ifnull(t2."INV_QTY", 0) - ifnull(sum(t1."OpenCreQty") over(partition by t1."ItemCode" order by t0."DocDate",t1."DocEntry",t1."LineNum" rows between UNBOUNDED PRECEDING and 1 PRECEDING), 0)
+		else 0
+	end as "INV_QTY",
+	d1."Quantity" as "Qty_Ret",
+	t4."CardCode"
+from 
+	OPDN t0
+	inner join PDN1 t1 on t1."DocEntry" = t0."DocEntry" 
+	left join (
+		select 
+			i1."ItemCode",
+			sum(i1."Quantity") as "INV_QTY"
+		from
+			OINV i0
+			inner join INV1 i1 on i1."DocEntry" = i0."DocEntry"
+		where
+			i0."DocDate" between FROMDATE AND TODATE
+		group by
+			i1."ItemCode"
+	) as t2 on t1."ItemCode" = t2."ItemCode"
+	left join (
+		select "BaseType", "BaseEntry","BaseLine",sum("Quantity") as "Quantity" from RPD1 group by "BaseType", "BaseEntry","BaseLine"
+	) d1 on d1."BaseType" = t0."ObjType" and d1."BaseEntry" = t1."DocEntry" and d1."BaseLine" = t1."LineNum"
+inner join OITM t3 on t1."ItemCode" = t3."ItemCode"
+inner join OCRD t4 on t0."CardCode" = t4."CardCode" and t4."CardType" = 'S'
+where
+	t1."OpenCreQty" > 0 and t3."U_IsConsigned" = 'Y' and t0."DocDate" < FROMDATE  AND t4."CardCode" = XXXX
+	) a;

@@ -1,0 +1,35 @@
+	select 
+odln."DocNum",
+odln."CardCode",
+odln."CardName",
+ocrd."U_RouteID",
+CONCAT(ohem."firstName",CONCAT(' ',CONCAT(ohem."lastName",CONCAT(' ', ohem."mobile")))) as "Name",
+ohem."mobile",
+sum(odln."DocTotal") as "DocTotal",
+case when odln."GroupNum" = -1 then 'Нал'  
+	 when odln."GroupNum" = 2 then 'Кредит 7' 
+	 when odln."GroupNum" = 3 then 'Кредит 14'  
+	 when odln."GroupNum" = 4 then 'Кредит 30'  
+	 when odln."GroupNum" = 7 then 'Кредит 40' 
+	 when odln."GroupNum" not in (-1,2,3,4,7) then 'def'  end as "PayType",
+case when odln."GroupNum" = -1 then 'Нал'  
+	 when odln."GroupNum" in (2,3,4,7) then 'Кредит' 
+	 when odln."GroupNum" not in (-1,2,3,4,7) then 'Другие' end as "PayTypeForSum"
+from test.ODLN odln
+	left join test.OCRD ocrd on odln."CardCode" = ocrd."CardCode"
+	left join test.OHEM ohem on odln."OwnerCode" = ohem."empID"
+where 
+odln."CANCELED" = 'N'
+	and odln."DocStatus" = 'O'
+	and odln."DocDate" >= FROMDATE
+	and odln."U_Agent" = AGENT
+group by
+	odln."DocNum",
+	odln."CardCode",
+	odln."CardName",
+	ocrd."U_RouteID",
+	ohem."firstName",
+	ohem."lastName",
+	ohem."mobile",
+	odln."GroupNum"
+	;

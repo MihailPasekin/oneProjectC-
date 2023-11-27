@@ -1,0 +1,151 @@
+﻿@page "/okreport"
+
+@using AdminPanelBlazor.Interfaces;
+@using AdminPanelBlazor.Services;
+@using EComersObjectLib.Objects;
+@using System.Globalization;
+@using System.IO;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccounting AccountingService
+
+<body class="body ,colorFont">
+
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">С даты</h3>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="FromDate"></InputDate>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">По дату</h3>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="ToDate"></InputDate>
+        </div>
+    </div>
+    <div>
+        <button class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetOkReportAsync())" >Показать отчет</button>
+    </div>
+    <div style="padding:30px"></div>
+<table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+    <thead class="model_table">
+        <tr>
+            <th>Дата</th>
+            <th>Сумма заказов</th>
+            <th>Сумма продаж</th>
+            <th>Сумма возврата</th>
+            <th>Сумма оплат</th>
+            <th>Всего</th>
+            <th></th>
+        </tr>
+        @if (okReport != null)
+        {
+            @foreach (var okReportLines in okReport)
+            {
+                <tr>
+                    <td>@okReportLines.DocDate.ToString("dd.MM.yyyy")</td>
+                    <td>@okReportLines.SumZakaza</td>
+                    <td>@okReportLines.SumProdaji</td>
+                    <td>@okReportLines.SumVozvrat</td>
+                    <td>@okReportLines.SumOplaty</td>
+                    @if (okReportLines.SumProdaji == okReportLines.SumOplaty)
+                    {
+                            <td style="color:green; font-size: 20px; font-weight:900; ">OK</td>
+                            valuePer = "Ok";
+                    }
+                    else
+                    {
+                        <td style="color:red; font-size: 20px; font-weight:900; ">XXX</td>
+                        valuePer = "XXX";
+                    }
+                    <td>
+
+                            <button class="div_right_livt" name="visitId" @onclick="(()=>NavigatorPageOkReportDetails(okReportLines.DocDate.Date))" value="@okReportLines.DocDate.ToString("dd.MM.yyyy")">Подробности</button>
+                    </td>
+                </tr>   
+            }
+        }
+    </thead>
+</table>
+    <div style="padding:10px">
+    </div>
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>
+</body>
+
+@code {
+    private MemoryStream excelStream;
+
+    private List<OkReportLines> okReport = new List<OkReportLines>();
+    private DateTime fromDate = DateTime.Now.Date;
+    private DateTime toDate = DateTime.Now.Date;
+    private DateTime FromDate { get { return fromDate; } set { fromDate = value; } }
+    private DateTime ToDate { get { return toDate; } set { toDate = value; } }
+    private string valuePer = "";
+    private string ValueTry { get { return valuePer; } set { valuePer = value; } }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? To { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        navigationParams.ClearNavigationStack();
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        fromDate = DateTime.Now.Date;
+        toDate = DateTime.Now.Date;
+        valuePer = "";
+        okReport = await AccountingService.GetOkReportListAsync(From.Replace("_", "."), To.Replace("_", "."));
+        await Task.CompletedTask;
+    }
+
+    protected override async void OnParametersSet()
+    {
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+
+        DateTime.TryParseExact(From, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out fromDate);
+        DateTime.TryParseExact(To, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out toDate);
+        
+        okReport = await AccountingService.GetOkReportListAsync(From.Replace("_", "."), To.Replace("_", "."));
+        
+        await Task.CompletedTask;
+    }
+
+    private async void NavigatorPageOkReportDetails(DateTime date)
+    {
+        From = fromDate.Date.ToString("yyyy_MM_dd");
+        To = toDate.Date.ToString("yyyy_MM_dd");
+        navigationParams.SetPrevParams(new Dictionary<string, string>() { { "from", $"{fromDate.Date.ToString("yyyy_MM_dd")}" }, { "to", $"{toDate.Date.ToString("yyyy_MM_dd")}" } });
+        string datestring = date.ToString("yyyy-MM-dd");
+        navigationmanager.NavigateTo($"okreportdetails/{datestring}", false);
+
+        await Task.CompletedTask;
+        
+    }
+    protected async Task GetOkReportAsync()
+    {
+        From = fromDate.Date.ToString("yyyy_MM_dd");
+        To = toDate.Date.ToString("yyyy_MM_dd");
+        okReport = await AccountingService.GetOkReportListAsync(From.Replace("_", "."), To.Replace("_", "."));
+        await Task.CompletedTask;
+    }
+
+    protected async void CreateDocument()
+    {
+        
+        await excelService.GenerateWeatherForecastAsync(FromDate, ToDate, ValueTry, JS, okReport, "export.xlsx");
+    }
+}

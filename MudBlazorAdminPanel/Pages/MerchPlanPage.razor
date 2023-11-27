@@ -1,0 +1,206 @@
+﻿@page "/merchPlan"
+
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using EComersObjectLib;
+
+@inject IOinvService OinvService
+
+<body class="body">
+    
+<div class="row ">
+   <div class="col">
+            <label for="exampleInputComment">Найти сотрудника</label>
+            <div style="padding-top:5px;"></div>
+            <MudInput T="string" @onchange="FilterTextChangedEmpoe" class="form-control" type="text" Placeholder="Поиск"> </MudInput>
+
+   <div style="padding-top:15px;"></div>    
+                
+            <label for="exampleInputComment">Выбрать сотрудника</label>
+
+            <div class='col-sm-2'>              
+                           <MudSelect T="string" @bind-Value="@employeName" Label="Выбрать...">
+                                <option value=""></option>
+                                @foreach (var emploe in EmploeAll)
+                                {
+                                  <MudSelectItem Value="@emploe.SapEmployeId">@emploe.EmployeSecondName @emploe.EmployeName</MudSelectItem>
+                                }
+                            </MudSelect>                
+            </div>  
+
+    <div style="padding-top:10px;"></div>
+        
+       
+                <div style="padding-top:15px;">
+                    <label for="exampleInputComment"  >Поиск заказщика</label>
+                <div style="padding-top:5px;"></div>
+                <MudInput T="string" @onchange="FilterTextChangedCustomer" class="form-control" type="text" Placeholder="Поиск"></MudInput>
+                </div>
+
+                <div style="padding-top:15px;">
+
+                <label for="exampleInputComment" >Выбрать заказщика</label>
+                <MudSelect T="string" @bind-Value="@merchPlanDitail.CardCode"  Label="Выбрать...">
+                  <option value=""></option>
+                      @foreach (var customer in CustomersFiltered)
+                      {
+                          <MudSelectItem Value="@customer.CardCode">@customer.CardName</MudSelectItem>
+                      }
+                    </MudSelect>
+
+                    <div style="padding-top:20px;"></div>
+
+                <MudButton class="input_color" @onclick="(()=>PlanDetailSubmit())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Person" type="submit">Добавить заказщика</MudButton>
+                </div>
+                   <div style="padding-top:30px;"></div>
+                </div>
+
+                <div class="col-md-4 col-xs-12 col-lg-6">
+                <div class="form-group">
+                    <label for="exampleInputComment">Комментарий</label>
+
+   <div style="padding-top:5px;"></div>
+
+                <MudInput T="string" type="text" class="form-control" id="commentText" aria-describedby="emailHelp" Placeholder="Написать..." @bind-Value="merchPlan.Coment"></MudInput>
+                </div>
+                <div style="padding-top:10px;">
+                  <label for="date" class="col-form-label"  >С какого числа?</label>
+                     <br />
+                     <table class="col_table">
+                         <tr>
+                             <td>
+                            <MudDatePicker class="input" style="margin-left:-4px;" Label="С какого числа?" @bind-Value="merchPlan.PlanDate" />
+                             </td> 
+                         </tr>
+                    </table>
+                </div>
+                </div>
+            </div>
+        
+    <div></div>
+    
+    
+        <div class="row">
+        <div style="padding-top:15px;"></div>
+            <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding-bottom:30px; margin-top:1px;">
+            
+            <MudTable Items="@Oinvs" Dense="false" Hover="true" Bordered="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Employe Name</MudTh>
+                            <MudTh style="width:-10%;">PlanDate</MudTh>
+                            <MudTh style="width:10%; padding-left:250px">Coment</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@employeName </MudTd>
+                            <MudTd>@merchPlan.PlanDate</MudTd>
+                            <MudTd style="word-break: break-all;">@merchPlan.Coment</MudTd>
+                        </RowTemplate>
+            </MudTable>
+            </div>
+
+            <div class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding-bottom:20px; ">
+                <MudTable Items="@Oinvs" Dense="false" Hover="true" Bordered="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>CardName</MudTh>
+                        <MudTh>CastomerId</MudTh>
+                        <MudTh>CardCode</MudTh>
+                    </HeaderContent>
+                        <RowTemplate>
+                        @if (Oinvs != null)
+                        {
+                            @foreach (var merchdetils in merchPlan.PlanDetails ?? new List<PlanDetail>())
+                            {
+                                
+                               <MudTd>@merchdetils.CardName</MudTd>
+                               <MudTd>@merchdetils.CastomerId</MudTd>
+                               <MudTd>@merchdetils.CardCode</MudTd>
+                                
+                            }   
+                        }
+                   </RowTemplate>
+                </MudTable>
+            </div>
+        </div>
+   
+    <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>HandleSubmitPlan())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Send" type="submit">Отправить данные</MudButton>
+</body>
+
+@code {
+    private PlanDetail merchPlanDitail = new PlanDetail();
+    private MerchPlan merchPlan = new MerchPlan();
+    private List<MerchPlan> Oinvs;
+    private List<Customer> CustomersAll = new List<Customer>();
+    private List<Customer> CustomersFiltered = new List<Customer>();
+    private List<EmployeView> EmploeAll = new List<EmployeView>();
+    private List<EmployeView> EmploeFiltered = new List<EmployeView>();
+    private string employeName = "";
+    private int customerId;
+    private int epmploeId;
+    private string customerFilterVal = "";
+    private string emploeFilterVal = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        merchPlan.PlanDate = DateTime.Now;
+        merchPlan.PlanDetails = new List<PlanDetail>();
+        Oinvs = await OinvService.MerchPlansAll();
+        CustomersAll = await OinvService.GetAllCustomers("1230");
+        CustomersFiltered = CustomersAll.Where(p => p.CardName.ToLower().Contains(customerFilterVal.ToLower())).ToList();
+        //EmploeAll = await OinvService.GetAllEmployesAsync();
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+    }
+
+    private async Task HandleSubmitPlan()
+    {
+
+        merchPlan.PlanStatus = "Created";
+        await OinvService.PostAllMerchPlan(merchPlan);
+        merchPlan = new MerchPlan()
+        {
+            PlanDate = DateTime.Now,
+            PlanDetails = new List<PlanDetail>()
+
+        };
+        Oinvs = await OinvService.MerchPlansAll();
+        await Task.CompletedTask;
+    }
+
+    private async Task PlanDetailSubmit()
+    {
+        var customer = CustomersAll.Where(p => p.CardCode == merchPlanDitail.CardCode).FirstOrDefault();
+        string cardName = customer != null ? customer.CardName : string.Empty;
+        merchPlanDitail.CardName = cardName;
+        merchPlanDitail.PlanDeteilStatus = "ACTIVE";
+        merchPlan.PlanDetails.Add(merchPlanDitail);
+        merchPlanDitail = new PlanDetail();
+        await Task.CompletedTask;
+    }
+    private Task SetAsyncEmploe(string value)
+    {
+        emploeFilterVal = value;
+
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(value.ToLower())).ToList();
+        return Task.CompletedTask;
+    }
+    public void FilterTextChangedCustomer(ChangeEventArgs eventArgs)
+    {
+        customerFilterVal = eventArgs.Value.ToString();
+
+        CustomersFiltered = CustomersAll.Where(p => p.CardName.ToLower().Contains(customerFilterVal.ToLower())).ToList();
+    }
+    public void FilterTextChangedEmpoe(ChangeEventArgs eventArgs)
+    {
+        emploeFilterVal = eventArgs.Value.ToString();
+
+        EmploeFiltered = EmploeAll.Where(p => p.EmployeSecondName.ToLower().Contains(emploeFilterVal.ToLower())).ToList();
+    }
+    public async void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        
+    }
+}

@@ -1,0 +1,35 @@
+select 
+	ohem."empID", 
+	ohem."firstName", 
+	ohem."lastName", 
+	ohem."middleName", 
+	ohem."sex", 
+	ohem."jobTitle", 
+	ohem."dept", 
+	ohem."birthDate",
+	ohem."mobile",
+	ohem."homeTel",
+	ohem."email",
+	ohem."workStreet",
+	ohem."workCity"
+from 
+	test.OHEM ohem
+	left join test.hem6 hem on ohem."empID" = hem."empID"
+	left join test.HTM1 htm on hem."empID" = htm."empID" 
+	left join test.OHTM ohtm on htm."teamID" = ohtm."teamID" 
+where ohem."jobTitle" = TITLE
+and ohtm."name" like '%REGION'
+group by
+	ohem."empID", 
+	ohem."firstName", 
+	ohem."lastName", 
+	ohem."middleName", 
+	ohem."sex", 
+	ohem."jobTitle", 
+	ohem."dept", 
+	ohem."birthDate",
+	ohem."mobile",
+	ohem."homeTel",
+	ohem."email",
+	ohem."workStreet",
+	ohem."workCity"

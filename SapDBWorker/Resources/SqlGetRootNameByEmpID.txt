@@ -1,0 +1,10 @@
+select 
+	ohtm."name"
+from 
+	test.ohem ohem,
+	test.HTM1 htm,
+	test.OHTM ohtm 
+where 1=1
+	and ohem."empID" = EMPID
+	and htm."empID" = ohem."empID"
+	and htm."teamID" = ohtm."teamID"

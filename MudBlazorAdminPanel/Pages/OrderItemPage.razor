@@ -1,0 +1,73 @@
+﻿@page "/orderItemPage"
+
+@using EComersObjectLib.SapObjects;
+@using MudBlazorAdminPanel.Interfaces
+
+
+
+@inject NavigationManager navigationmanager
+@inject IOinvService OinvService
+@inject INavigation navigationParams
+
+
+<body class="body">
+<PageTitle>Order Item Page</PageTitle>
+    <h3 class="colorFontWhite">OrderItemPage</h3>
+    <form >
+        <MudTable Items="@OrderItem" Dense="false" Hover="true" Bordered="true" Striped="true">            
+                <HeaderContent>                    
+                    <MudTh>Док Ентри</MudTh>
+                    <MudTh>Номер строки</MudTh>
+                    <MudTh>Итем код</MudTh>
+                    <MudTh>Описание</MudTh>
+                    <MudTh>Количесто</MudTh>
+                    <MudTh>Цена</MudTh>
+                    <MudTh>Сумма</MudTh>
+                    <MudTh>Склад</MudTh>               
+                </HeaderContent>               
+                <RowTemplate>
+                        <MudTd>@context.DocEntry</MudTd>
+                        <MudTd>@context.LineNum</MudTd>
+                        <MudTd>@context.ItemCode</MudTd>
+                        <MudTd>@context.Description</MudTd>
+                        <MudTd>@context.Quantity</MudTd>
+                        <MudTd>@context.Price</MudTd>
+                        <MudTd>@context.LineTotal</MudTd>
+                        <MudTd>@context.WhsCode</MudTd>                      
+                </RowTemplate>
+        <PagerContent>
+            <MudTh>Итого:</MudTh>
+            <MudTh>Количество:  @SumQuantity</MudTh>
+            <MudTh>Цена:  @SumPrice</MudTh>
+            <MudTh>Сумма:  @SumLineTotal</MudTh>
+        </PagerContent>
+    </MudTable>
+        <div style="padding-top:20px">
+        </div>
+        <div>
+            <MudButton class=" btn-lg btn-primary, input_color2" @onclick="GoToOkReportDetails" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" value="Send">Вернуться к заказам</MudButton>
+        </div>
+    </form>
+</body>
+@code {
+    private double SumQuantity { get { return Math.Round(OrderItem.Sum(p => p.Quantity), 2); } }
+    private double SumPrice { get { return Math.Round(OrderItem.Sum(p => p.Price), 2); } }
+    private double SumLineTotal { get { return Math.Round(OrderItem.Sum(p => p.LineTotal), 2); } }
+    private List<RDR1> OrderItem = new List<RDR1>();
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+        OrderItem = await OinvService.GetSapOrderLines(int.Parse(id));
+        await Task.CompletedTask;
+        //SummCheckedInvoice();
+    }
+    public void GoToOkReportDetails()
+    {
+        Dictionary<string, string> param = navigationParams.GetPrevParams();
+        navigationmanager.NavigateTo($"{param.Keys.First()}/{param[param.Keys.First()]}", false);
+    }
+}

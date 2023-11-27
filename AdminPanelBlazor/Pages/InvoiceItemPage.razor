@@ -1,0 +1,81 @@
+﻿@page "/invoiceItemPage"
+
+@using EComersObjectLib.SapObjects;
+@using AdminPanelBlazor.Interfaces
+
+@inject NavigationManager navigationmanager
+@inject IAccountingDetail AccountDetailService
+@inject INavigation navigationParams
+
+<body class="body">
+    <PageTitle>Invoice Item Page</PageTitle>
+    <h3 class="colorFontWhite">orderitempage</h3>
+        <table border=1 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+            <thead class="model_table">
+                <tr>
+                    <th>Док Ентри</th>
+                    <th>Номер строки</th>
+                    <th>Итем код</th>
+                    <th>Описание</th>
+                    <th>Количесто</th>
+                    <th>Цена</th>
+                    <th>Сумма</th>
+                    <th>Склад</th>
+                </tr>
+                @if (InvoiceItem != null)
+                {
+                    if (InvoiceItem.Count > 0)
+                    {
+                        @foreach (var rdr in InvoiceItem)
+                        {
+                            <tr>
+                                <td>@rdr.DocEntry</td>
+                                <td>@rdr.LineNum</td>
+                                <td>@rdr.ItemCode</td>
+                                <td>@rdr.Description</td>
+                                <td>@rdr.Quantity</td>
+                                <td>@rdr.Price</td>
+                                <td>@rdr.LineTotal</td>
+                                <td>@rdr.WhsCode</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td style="float:right">Итого:</td>
+                            <td>@SumQuantity</td>
+                            <td>@SumPrice</td>
+                            <td>@SumLineTotal</td>
+                            <td></td>
+                        </tr>
+                    }
+                }
+            </thead>
+        </table>
+        <div style="padding-top:20px">
+        </div>
+        <div>
+            <button class=" btn-lg btn-primary, input_color2" @onclick="GoToOkReportDetails" value="Send">Вернуться к заказам</button>
+        </div>
+</body>
+@code {
+    private double SumQuantity { get { return Math.Round(InvoiceItem.Sum(p => p.Quantity), 2); } }
+    private double SumPrice { get { return Math.Round(InvoiceItem.Sum(p => p.Price), 2); } }
+    private double SumLineTotal { get { return Math.Round(InvoiceItem.Sum(p => p.LineTotal), 2); } }
+    private List<RDR1> InvoiceItem = new List<RDR1>();
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string id { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        InvoiceItem = await AccountDetailService.GetInvoiceItem(int.Parse(id));
+        await Task.CompletedTask;
+        //SummCheckedInvoice();
+    }
+    public void GoToOkReportDetails()
+    {
+        Dictionary<string, string> param = navigationParams.GetPrevParams();
+        navigationmanager.NavigateTo($"{param.Keys.First()}?{param[param.Keys.First()]}", false);
+    }
+}

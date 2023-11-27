@@ -1,0 +1,13 @@
+SELECT
+S8."DocEntry", ocrd."U_RouteID" as "Root", orct."CardName" as "Name", orct."DocTotal" as "Sum", orct."DocDate" as "Date", s8."DocNum",orct."CardCode"  
+FROM OINV S8
+left JOIN rct2 rct ON S8."DocEntry" = rct."DocEntry"
+left JOIN Orct orct ON rct."DocNum" = orct."DocEntry"
+left JOIN OCRD ocrd on S8."CardCode" = ocrd."CardCode"
+WHERE 
+orct."DocDate" BETWEEN FROMDATE AND TODATE
+AND S8."CANCELED" = 'N'
+and orct."Canceled" = 'N'
+and ocrd."U_RouteID" = XXXX
+and ocrd."U_RouteID" != 'OFFICE'
+;

@@ -1,0 +1,110 @@
+﻿@page
+@model ECommersAdminPanel2.Pages.IndexModel
+@{
+    ViewData["Title"] = "Order page";
+    double totalSum = 0;
+}
+
+<form method="post" asp-page-handler="ByEmpId">
+    <input type="text" name="employeId" />
+    <input type="submit" value="Send" class="input_color" />
+</form>
+
+<h2>@Model.Employe.firstName @Model.Employe.lastName</h2>
+<h4>
+    Root:
+    @foreach (var root in Model.EmployeRoots)
+    {
+        <text> @root.Root;   </text>
+    }
+</h4>
+
+<form method="post" asp-page-handler="CreatePay">
+
+        <table bordercolor="#000000" cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+            <thead style="height: 10%; overflow: auto;">
+                <tr>
+                    <th>DocEntry</th>
+                    <th>CardCode</th>
+                    <th>CardName</th>
+                    <th>PayType</th>
+                    <th>DocDate</th>
+                    <th>DocTotal</th>
+                    <th>PaySum</th>
+                    <th>Confirm</th>
+                </tr>
+                @if (Model.Invoicelist != null)
+                {
+                @foreach (var invoice in Model.Invoicelist)
+                    {
+                        <tr>
+                            <td>@invoice.DocEntry</td>
+                            <td>@invoice.CardCode</td>
+                            <td>@invoice.CardName</td>
+                            <td>
+                                @switch (invoice.GroupNum)
+                                {
+                                    case -1:
+                                        <text>"Наличные"</text>
+                                        ;
+                                        break;
+                                    case 1:
+                                        <text>"При отгрузке"</text>
+                                        ;
+                                        break;
+                                    case 2:
+                                        <text>"Кредит 7"</text>
+                                        ;
+                                        break;
+                                    case 3:
+                                        <text>"Кредит 14"</text>
+                                        ;
+                                        break;
+                                    case 4:
+                                        <text>"Кредит 30"</text>
+                                        ;
+                                        break;
+                                    case 5:
+                                        <text>"Перечисление"</text>
+                                        ;
+                                        break;
+                                    case 6:
+                                        <text>"Консигнация"</text>
+                                        ;
+                                        break;
+                                    case 7:
+                                        <text>"Реализация"</text>
+                                        ;
+                                        break;
+                                }
+                            </td>
+                            <td>@invoice.DocDate.ToShortDateString()</td>
+                            <td>@invoice.DocTotal </td>
+                            <td>
+                                <input type="hidden" name="empId" value="@Model.EmpId" />
+                                <input type="hidden" name="Invoicelist.Index" value="@invoice.DocEntry" />
+                                <input name="Invoicelist[@invoice.DocEntry].DocEntry" value="@invoice.DocEntry" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].DocNum" value="@invoice.DocNum" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].DocDate" value="@invoice.DocDate" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].CardCode" value="@invoice.CardCode" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].CardName" value="@invoice.CardName" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].DocTotal" value="@invoice.DocTotal" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].OwnerCode" value="@invoice.OwnerCode" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].DocStatus" value="@invoice.DocStatus" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].GroupNum" value="@invoice.GroupNum" type="hidden" />
+                                <input name="Invoicelist[@invoice.DocEntry].PaySum" value="@invoice.DocTotal" />
+                            </td>
+                            <td>
+                                 <input id="checkbox" name="Invoicelist[@invoice.DocEntry].Confirm" value="true" type="checkbox">
+                            </td>
+                        </tr>
+                    }
+                }
+            </thead>
+        </table>
+    <div>
+        <text></text>
+        <button class="div_right_livt" value="Send">Отправить данные</button>
+    </div>
+</form>
+

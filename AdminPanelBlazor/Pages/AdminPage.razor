@@ -1,0 +1,99 @@
+﻿@page "/adminpage"
+
+@using AdminPanelBlazor.Models
+@using AdminPanelBlazor.Services
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib
+@using EcomersCryptoLib
+@inject IAdminOptions AdminOptions
+<body class="body">
+
+    <h2>Добавить пользователя</h2>
+
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h4 class="colorFont">Login</h4>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputText @bind-Value="user.Login"></InputText>
+        </div>
+    </div>
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h4 class="colorFont">Name</h4>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputText @bind-Value="user.Name"></InputText>
+        </div>
+    </div>
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h4 class="colorFont">SecondName</h4>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputText @bind-Value="user.SecondName"></InputText>
+        </div>
+    </div>
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h4 class="colorFont">Password</h4>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputText @bind-Value="user.PasswordHash"></InputText>
+        </div>
+    </div>
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h4 class="colorFont">Role</h4>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputNumber @bind-Value="user.RoleId"></InputNumber>
+        </div>
+    </div>
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h4 class="colorFont">CashAccount</h4>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputText @bind-Value="user.CashAccount"></InputText>
+        </div>
+    </div>
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h4 class="colorFont">Region</h4>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputText @bind-Value="user.Region"></InputText>
+        </div>
+    </div>
+
+    <div style="padding:10px">
+    </div>
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateUser">Добавить пользователя</button>
+</body>
+@code {
+    private User user { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+    protected async void CreateUser()
+    {
+        //user.PasswordHash = EcomersCrypto.GetHashPassword(user.PasswordHash);
+        user.CreatedDate = DateTime.UtcNow;
+        user.StatusId = 1;
+        user.CreatedUserId = 1;
+        await AdminOptions.CreateUser(user);
+
+        user = new();
+        await Task.CompletedTask;
+    }
+}

@@ -1,0 +1,28 @@
+﻿@page "{id}"
+@model ECommersAdminPanel2.Pages.ProductReportModel
+@{
+}
+
+<table border=2 bordercolor="#000000" cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+    <thead>
+        <tr>
+            <th>Product group name</th>
+            <th>Product name</th>
+            <th>Comment</th>
+            <th>Status</th>
+        </tr>
+        @if (Model.SoldStat != null)
+        {
+            @foreach (var soldStat in Model.SoldStat)
+            {
+                <tr>
+                    <td>@soldStat.MerchProductGroup.GroupName</td>
+                    <td>@soldStat.MerchProduct.MerchProductName</td>
+                    <td>@soldStat.MerchProdyctComment</td>
+                    <td>@soldStat.SoldStatusCod</td>
+                </tr>
+                    
+            }
+        }
+    </thead>
+</table>

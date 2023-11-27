@@ -1,0 +1,126 @@
+﻿@page "/itemloading"
+
+@using AdminPanelBlazor.Interfaces
+@using EComersObjectLib.Objects;
+@using EComersObjectLib.SapObjects;
+@using AdminPanelBlazor.Services;
+@using Microsoft.JSInterop;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IWarehouse WarehouseService
+@inject IOinvService iOinvService
+
+<body class="body">
+    <PageTitle>WareHouse</PageTitle>
+    <h3 class="colorFontWhite">Подбор товаров к отгрузке на дату: @FromDate.ToShortDateString()</h3>
+      
+    <div class="row" style="padding-top:30px">
+        <div class='col-sm-2'>
+            <h3 class="colorFont">С даты</h3>
+        </div>
+
+        <div class='col-sm-2'>
+            <InputDate @bind-Value="FromDate"></InputDate>
+        </div>
+    </div>
+
+    <div class="row" style="padding-top:15px;">
+        <div class="col-sm-2">
+            <h3 for="exampleInputComment">Выбор сотрудника</h3>
+        </div>
+        
+        <div class="col-sm-2">
+            <select class="form-control" id="emploe" @onchange="EmployeSelected">
+                <option selected>Выбрать...</option>
+                @foreach (var emploe in EmploeAll)
+                {
+                    <option value="@emploe.empId">@emploe.firstName @emploe.lastName</option>
+                }
+            </select>
+        </div>
+
+        <div style="padding-top:10px;"></div>
+
+    </div>
+    <div style="padding-bottom:20px">
+        <button class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetReportAsync())" type="submit">Показать отчет</button>
+    </div>
+    <div style="padding-top:30px;"></div>
+    <form class="colorFontWhite" method="post" asp-page-handler="VisitId">
+        <table border=2 cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+            <thead class="model_table">
+                <tr>
+                    <th>Код заказчика</th>
+                    <th>Описаниие</th>
+                    <th>Код товара</th>
+                    <th>Количество</th>
+                    <th>Дата доставки</th>
+                    <th>Цена</th>
+                    <th>Дата регистрации</th>
+                </tr>
+                @if (loadingReports != null)
+                {
+                    @foreach (var loading in loadingReports)
+                    {
+                        <tr>
+                            <td>@loading.CardCode</td>
+                            <td>@loading.Description</td>
+                            <td>@loading.CodeBars</td>
+                            <td>@loading.Quantity</td>
+                            <td>@loading.ShipDate.ToShortDateString()</td>
+                            <td>@loading.Price</td>
+                            <td>@loading.DocDate.ToShortDateString()</td>
+                        </tr>
+                    }
+                }
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>@if (loadingReports != null)
+                        {loadingReports.Sum(p => p!.Price);}
+                    </td>
+                    <td></td>
+                </tr>
+            </thead>
+        </table>
+    </form>
+    <div style="padding:10px"></div>
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>
+</body>
+
+@code {
+    private string empId = "885";
+    private DateTime FromDate { get; set; } = DateTime.Now.AddDays(-1);
+    private List<OHEM> EmploeAll = new List<OHEM>();
+    private List<LoadingReport> loadingReports;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loadingReports = (await WarehouseService.GetLoadingReport(FromDate.ToString("yyyy.MM.dd"), empId));
+        EmploeAll = (await iOinvService.GetAllEmployesEkspeditorAsync());
+    }
+
+    
+    public void EmployeSelected(ChangeEventArgs eventArgs)
+    {
+        empId = eventArgs.Value.ToString();
+    }
+
+    protected async Task GetReportAsync()
+    {
+        loadingReports = (await WarehouseService.GetLoadingReport(FromDate.ToString("yyyy.MM.dd"), empId));
+        await Task.CompletedTask;
+    }
+
+    protected async void CreateDocument()
+    {
+        string employeName = EmploeAll.Where(p => p.empId == int.Parse(empId)).Select(p => string.Concat(p.firstName, " ", p.lastName) ).FirstOrDefault()??" ";
+        await excelService.GenerateWarehouseLoadingReportAsync(FromDate, employeName, JS, loadingReports, "export.xlsx");
+    }
+}

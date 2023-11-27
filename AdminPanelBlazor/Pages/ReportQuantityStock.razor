@@ -1,0 +1,191 @@
+﻿@page "/reportquantitystock"
+
+@using AdminPanelBlazor.Interfaces;
+@using AdminPanelBlazor.Services;
+@using EComersObjectLib.Objects;
+@using EComersObjectLib.SapObjects;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IWarehouse WarehouseService
+
+<body class ="body">
+<h3>ReportQuantityStock</h3>
+
+    <div class="row" style="padding:13px">
+
+        <div class="col-sm-2">
+            <select class="form-control" id="warehouses" @onchange="StockSubmit">
+                <option selected>Выбрать...</option>
+                @foreach (var warehouses in warehousessapget)
+                {
+                    <option value="@warehouses.WhsCode">@warehouses.WhsCode</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-sm-2"> 
+            <select class="form-control" id="ItmsGrpCod" @onchange="PlanDetailSubmit">
+                <option selected>Выбрать...</option>
+                @foreach (var product in productgroup)
+                {
+                    <option value="@product.ItmsGrpCod">@product.ItmsGrpNam</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-sm-2">
+            <select class="form-control" id="ItmsGrp" @onchange="Products">
+                <option selected>Выбрать...</option>
+                @foreach (var product in products)
+                {
+                    <option value="@product.ItmsGrpNam">@product.ItmsGrpNam</option>
+                }
+            </select>
+        </div>
+            
+        <div class="col-sm-2">
+            <button class="input_color3" @onclick="(()=>OnInitializedAsync())" type="submit">Очистить товары</button>
+        </div>
+    </div>
+
+    <div style="padding:10px">
+                                       
+    @if (productlistvalue != null)
+    {       
+        @foreach (var nameproduct in productlistvalue)
+        {
+           <div class="box" style="padding:10px">@nameproduct</div>                                                                                         
+        }
+    }                       
+    </div>
+
+    <div style="padding-bottom:20px">
+        <button class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetReportAsync())" type="submit">Показать отчет</button>
+    </div>
+
+    <div style="padding-top:30px;"></div>
+
+    <table border=2 cellspacing="0" cellpadding="10" class="model_table , colorFont">
+        <thead class="model_table">
+            <tr>
+                <th>Код</th>
+                <th>Имя продукта</th>
+                <th>Количество на складе</th>
+                <th>Продажа(заказанно)</th>
+                <th>Закупки(заказанно)</th>
+            </tr>
+            @if (warehouse != null)
+            {
+                @foreach (var prepayment in warehouse)
+                {
+                    <tr>
+                        <td>@prepayment.ItemCode</td>
+                        <td>@prepayment.ItemName</td>
+                        <td>@prepayment.OnHand</td>
+                        <td>@prepayment.IsCommited</td>
+                        <td>@prepayment.IsCommited</td>
+                    </tr>
+                }
+            }
+        </thead>
+    </table>
+
+    <div style="padding-top:15px;"></div>
+    
+    <button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>
+
+</body>
+
+@code {
+    private List<SqlProductGroup> productgroup = new List<SqlProductGroup>();
+    private List<WarehousesSapGet> warehousessapget = new List<WarehousesSapGet>();
+    private List<WarehouseWithdrawal> warehouse = new List<WarehouseWithdrawal>();
+    private List<ProductGroupsPropertiesSql> products = new List<ProductGroupsPropertiesSql>();
+    private List<string> productlistvalue = new List<string>();
+    private List<int> listgroupprodukt = new List<int>();
+    private string idProductGroup = null;
+    private string stock = null;
+    private string nameproduct;
+    private string productgroupsSQL = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        productgroupsSQL = null;
+        listgroupprodukt = new List<int>();
+        productlistvalue = new List<string>();
+        warehouse = new List<WarehouseWithdrawal>();
+        warehousessapget = await WarehouseService.GetWarehousessap();
+        productgroup = await WarehouseService.GetProductGroup();
+        products = await WarehouseService.GetProductGroupsPropertiesSql();
+
+    }
+    private async Task PlanDetailSubmit(ChangeEventArgs eventArgs)
+    {
+        if (eventArgs.Value.ToString() == "Выбрать...")
+        {
+            idProductGroup = null;
+        }
+        else
+        {
+            idProductGroup = eventArgs.Value.ToString();
+        }
+    }
+    private async Task StockSubmit(ChangeEventArgs eventArgs)
+    {
+        if (eventArgs.Value.ToString() == "Выбрать...")
+        {
+            stock = null;
+        }
+        else
+        {
+            stock = eventArgs.Value.ToString();
+        }
+    }
+    private async Task Products(ChangeEventArgs eventArgs)
+    {
+
+        if (eventArgs.Value.ToString().TrimEnd('.') == "Выбрать")
+        {
+            nameproduct = null;
+        }
+        else{
+            nameproduct = eventArgs.Value.ToString();
+
+            if (!productlistvalue.Contains(nameproduct))
+            {
+                foreach (var i in products)
+                {
+                    if (nameproduct == i.ItmsGrpNam)
+                    {
+                        int coin = 0;
+                        string andor = "and(";
+                        foreach (var j in listgroupprodukt) { coin++; }
+                        if (coin > 0)
+                        {
+                            andor = "or";
+                        }
+                        listgroupprodukt.Add(i.ItmsTypCod);
+
+
+                        productgroupsSQL += $"{andor} oitm.\"QryGroup{i.ItmsTypCod}\" = \'Y\' ";
+
+                    }
+                }
+                productlistvalue.Add(nameproduct);
+
+            }
+        }
+    }
+
+    protected async void CreateDocument()
+    {
+        await excelService.WarehouseWithdrawalDocListReportAsync(stock , JS, warehouse, "export.xlsx");
+        await Task.CompletedTask;
+    }
+    protected async Task GetReportAsync()
+    {
+        warehouse = await WarehouseService.GetWarehouseWithdrawal(stock, idProductGroup, productgroupsSQL);      
+    }
+    
+}

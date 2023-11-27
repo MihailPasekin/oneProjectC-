@@ -1,0 +1,1 @@
+select "ItmsGrpCod" , "ItmsGrpNam" from test.oitb;

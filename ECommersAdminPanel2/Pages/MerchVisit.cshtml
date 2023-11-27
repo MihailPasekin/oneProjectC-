@@ -1,0 +1,46 @@
+﻿@page
+@model ECommersAdminPanel2.Pages.MerchVisitModel
+@{
+}
+
+<form method="post" asp-page-handler="ByEmpId">
+    <input type="text" name="employeId" />
+    <input type="submit" value="Send" class="input_color" />
+</form>
+
+<form method="post" asp-page-handler="VisitId">
+    <table border=2 bordercolor="#000000" cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+        <thead>
+            <tr>
+                <th>VisitID</th>
+                <th>CardCode</th>
+                <th>CardName</th>
+                <th>VisitDate</th>
+                <th>Merchandising</th>
+                <th>Comment</th>
+                <th>SaleProducts</th>
+            </tr>
+            @if (Model.MerchVisits != null)
+            {
+                @foreach (var merchVisit in Model.MerchVisits)
+                {
+                    <tr>
+                        <input type="hidden" name="merchVisit.Index" value="@merchVisit.MerchVisitId" />
+                        <td>@merchVisit.MerchVisitId</td>
+                        <td>@merchVisit.CardCode</td>
+                        <td>@merchVisit.Customer.CardName</td>
+                        <td>@merchVisit.VisitDateTime.ToShortDateString()</td>
+                        <td>@merchVisit.Merch</td>
+                        <td>@merchVisit.Comment</td>
+                        <td>
+                            <button class="div_right_livt" value="@merchVisit.MerchVisitId" name="visitId">Отчет по товарам</button>
+                        </td>
+                    </tr>
+                    
+                }
+            }
+        </thead>
+    </table>
+  
+
+</form>

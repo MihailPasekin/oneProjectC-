@@ -1,0 +1,60 @@
+﻿@page
+@model WebAdminPanel.Pages.IndexModel
+@{
+    ViewData["Title"] = "Order page";
+}
+
+
+<form method="post" asp-page-handler="ByEmpId">
+    <input type="text" name="employeId" />
+    <input type="submit" value="Send" class="input_color" />
+</form>
+
+<form method="post" asp-page-handler="CreatePay">
+    <table border=2 bordercolor="#000000" cellspacing="0" cellpadding="10" id="model_table_winter" class="model_table">
+        <thead>
+            <tr>
+                <th>DocEntry</th>
+                <th>CardCode</th>
+                <th>CardName</th>
+                <th>DocDate</th>
+                <th>DocTotal</th>
+                <th>PaySum</th>
+                <th>Confirm</th>
+            </tr>
+            @if (Model.Invoicelist != null)
+            {
+                @foreach (var invoice in Model.Invoicelist)
+                {
+                    <tr>
+                        <td>@invoice.DocEntry</td>
+                        <td>@invoice.CardCode</td>
+                        <td>@invoice.CardName</td>
+                        <td>@invoice.DocDate.ToShortDateString()</td>
+                        <td>@invoice.DocTotal</td>
+                        <td>
+                            <input type="hidden" name="Invoicelist.Index" value="@invoice.DocEntry" />
+                            <input name="Invoicelist[@invoice.DocEntry].DocEntry" value="@invoice.DocEntry" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].DocNum" value="@invoice.DocNum" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].DocDate" value="@invoice.DocDate" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].CardCode" value="@invoice.CardCode" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].CardName" value="@invoice.CardName" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].DocTotal" value="@invoice.DocTotal" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].OwnerCode" value="@invoice.OwnerCode" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].DocStatus" value="@invoice.DocStatus" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].GroupNum" value="@invoice.GroupNum" type="hidden" />
+                            <input name="Invoicelist[@invoice.DocEntry].PaySum" value="@invoice.DocTotal" />
+
+                        </td>
+                        <td><input name="Invoicelist[@invoice.DocEntry].Confirm" value="true" type="checkbox" /></td>
+                    </tr>
+
+                }
+            }
+        </thead>
+    </table>
+    <div>
+        <button class="div_right_livt" value="Send">Отправить данные</button>
+    </div>
+
+</form>

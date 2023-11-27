@@ -1,0 +1,80 @@
+﻿@page "/reportprepayment"
+
+@using MudBlazorAdminPanel.Models
+@using MudBlazorAdminPanel.Services
+@using MudBlazorAdminPanel.Interfaces
+@using EComersObjectLib.Objects;
+@using Microsoft.JSInterop;
+@using System.IO;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccounting AccountingService
+
+<body class="body ,colorFont">
+
+    <h3>СreportPrepayment</h3>
+    <div class="row" style="padding-top:30px">
+        <MudStack Spacing="20" Row="false">
+            <MudText>Дата</MudText>
+            <MudDateRangePicker Label="" @bind-DateRange="dataRange" />
+        </MudStack>
+    </div>
+    <div>
+        <div style="padding:10px"></div>
+        <MudButton class=" btn-lg btn-primary, input_color2" @onclick="(()=>GetReport())" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.AddCircle" type="submit">Показать отчет</MudButton>
+    </div>
+    <div style="padding:30px"></div>
+    <MudTable Items="@prepaymentList" Dense="false" Hover="true" Bordered="true" Striped="true">
+        
+           <HeaderContent>
+                <MudTh>Номер документа</MudTh>
+                <MudTh>Дата</MudTh> 
+                <MudTh>CardCode</MudTh>
+                <MudTh>CardName</MudTh>
+                <MudTh>DocTotal</MudTh>
+                <MudTh>Имя</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.DocNum</MudTd>
+                <MudTd>@context.DocDate.ToString("dd.MM.yyyy")</MudTd>
+                <MudTd>@context.CardCode</MudTd>
+                <MudTd>@context.CardName</MudTd>
+                <MudTd>@context.DocTotal</MudTd>
+                <MudTd>@context.Name</MudTd>
+            </RowTemplate>               
+    </MudTable>
+    <!--<button class=" btn-lg btn-primary, input_color2" @onclick="@CreateDocument">Скачать Excel</button>-->
+</body>
+@code {
+    MudDateRangePicker _picker;
+    private DateRange dataRange = new DateRange(DateTime.Now.Date, DateTime.Now.Date);
+    private List<PrepaymentReport> prepaymentList = new List<PrepaymentReport>();
+    private DateTime? FromDate { get; set; } = DateTime.Now.Date;
+    private DateTime? ToDate { get; set; } = DateTime.Now.Date;
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? To { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        prepaymentList = await AccountingService.GetPrepaymentReportAsync(From.Replace("_", "."), To.Replace("_", "."));
+        await Task.CompletedTask;
+    }
+    protected async Task GetReport()
+    {
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+        prepaymentList = await AccountingService.GetPrepaymentReportAsync(From.Replace("_", "."), To.Replace("_", "."));
+        //await excelService.GenerateWeatherСonsignmentAsync(FromDate, ToDate, JS, prepaymentList, "export.xlsx");
+        await Task.CompletedTask;
+    }
+}

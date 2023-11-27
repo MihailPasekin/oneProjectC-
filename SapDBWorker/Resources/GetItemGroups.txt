@@ -1,0 +1,6 @@
+select 
+	"ItmsGrpCod", 
+	"ItmsGrpNam" 
+from 
+	test.oitb 
+where "ItmsGrpCod" in (101, 102);

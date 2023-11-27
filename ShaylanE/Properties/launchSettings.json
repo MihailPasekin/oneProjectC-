@@ -1,0 +1,38 @@
+{
+  "profiles": {
+    "EComersWebApiEmploe": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+
+
+      "applicationUrl": "https://192.168.0.141:7093;http://192.168.0.141:5093"
+
+
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "SSLEnabled": false
+    }
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+
+      "applicationUrl": "https://192.168.0.141:7093;http://192.168.0.141:5093",
+      
+      "sslPort": 0
+    }
+  }
+}

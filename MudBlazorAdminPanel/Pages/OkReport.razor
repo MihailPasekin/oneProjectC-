@@ -1,0 +1,135 @@
+﻿@page "/okreport"
+
+@using MudBlazorAdminPanel.Interfaces;
+@using MudBlazorAdminPanel.Services;
+@using EComersObjectLib.Objects;
+@using System.Globalization;
+@using System.IO;
+
+@inject ExcelService excelService
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject NavigationManager navigationmanager
+@inject INavigation navigationParams
+@inject IAccounting AccountingService
+
+<body class="body ,colorFont">
+
+    
+    <MudStack Spacing="20" Row="false">
+        <MudText>Период</MudText>
+        <MudDateRangePicker Label="" @bind-DateRange="dataRange" />
+    </MudStack>
+       
+    <div style="padding-top:20px">
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GetOkReportAsync" EndIcon="@Icons.Material.Filled.AddCircle">Показать отчет</MudButton>
+        
+    </div>
+    <div style="padding:30px"></div>
+
+    <MudTable Items="@okReport" Dense="false" Hover="true" Bordered="true" Striped="true" SortLabel="Sort By">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<OkReportLines, object>(x=>x.DocDate)">Дата</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<OkReportLines, object>(x=>x.SumZakaza)">Сумма заказов</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<OkReportLines, object>(x=>x.SumProdaji)">Сумма продаж</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<OkReportLines, object>(x=>x.SumVozvrat)">Сумма возврата</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<OkReportLines, object>(x=>x.SumOplaty)">Сумма оплат</MudTableSortLabel></MudTh>
+            <MudTh>Всего</MudTh>
+            <MudTh>Подробности</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="DocDate">@context.DocDate.ToString("dd.MM.yyyy")</MudTd>
+            <MudTd DataLabel="SumZakaza">@context.SumZakaza</MudTd>
+            <MudTd DataLabel="SumProdaji">@context.SumProdaji</MudTd>
+            <MudTd DataLabel="SumVozvrat">@context.SumVozvrat</MudTd>
+            <MudTd DataLabel="SumOplaty">@context.SumOplaty</MudTd>
+            <MudTd>
+                @if (context.SumProdaji == context.SumOplaty)
+                {
+                    <td style="color:green; font-size: 20px; font-weight:900; ">OK</td>
+                    valuePer = "Ok";
+                }
+                else
+                {
+                    <td style="color:red; font-size: 20px; font-weight:900; ">XXX</td>
+                    valuePer = "XXX";
+                }
+             </MudTd>
+             <MudTd>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(()=>NavigatorPageOkReportDetails(context.DocDate.Date))">Подробности</MudButton>
+             </MudTd>
+        </RowTemplate>
+        <PagerContent>  
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+    <div style="padding-top:20px">
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateDocument" EndIcon="@Icons.Material.Filled.Download">Скачать Excel</MudButton>
+
+    </div>
+</body>
+
+@code {
+    MudDateRangePicker _picker;
+    private DateRange dataRange = new DateRange(DateTime.Now.Date, DateTime.Now.Date);
+    private MemoryStream excelStream;
+    private List<OkReportLines> okReport = new List<OkReportLines>();
+    private string valuePer = "";
+    private string ValueTry { get { return valuePer; } set { valuePer = value; } }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? From { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? To { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        navigationParams.ClearNavigationStack();
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        DateTime.TryParseExact(From, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime from);
+        dataRange.Start = from;
+        DateTime.TryParseExact(To, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime to);
+        dataRange.End = to;
+        valuePer = "";
+        okReport = await AccountingService.GetOkReportListAsync(From.Replace("_", "."), To.Replace("_", "."));
+        await Task.CompletedTask;
+    }
+
+    protected override async void OnParametersSet()
+    {
+        From = From ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+        To = To ?? DateTime.Now.Date.ToString("yyyy_MM_dd");
+
+        DateTime.TryParseExact(From, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime from);
+        dataRange.Start = from;
+        DateTime.TryParseExact(To, "yyyy_MM_dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime to);
+        dataRange.End = to;
+        okReport = await AccountingService.GetOkReportListAsync(From.Replace("_", "."), To.Replace("_", "."));
+        
+        await Task.CompletedTask;
+    }
+
+    private void NavigatorPageOkReportDetails(DateTime date)
+    {
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+        navigationParams.SetPrevParams(new Dictionary<string, string>() { { "from", $"{dataRange.Start.Value.Date.ToString("yyyy_MM_dd")}" }, { "to", $"{dataRange.End.Value.Date.ToString("yyyy_MM_dd")}" } });
+        string datestring = date.ToString("yyyy-MM-dd");
+        navigationmanager.NavigateTo($"okreportdetails/{datestring}", false);
+    }
+    protected async Task GetOkReportAsync()
+    {
+        From = dataRange.Start.Value.Date.ToString("yyyy_MM_dd");
+        To = dataRange.End.Value.Date.ToString("yyyy_MM_dd");
+        okReport = await AccountingService.GetOkReportListAsync(From.Replace("_", "."), To.Replace("_", "."));
+        await Task.CompletedTask;
+    }
+
+    protected async void CreateDocument()
+    {
+        await excelService.GenerateWeatherForecastAsync(dataRange.Start.Value, dataRange.End.Value, ValueTry, JS, okReport, "export.xlsx");
+    }
+}
